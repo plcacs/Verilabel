@@ -5,4 +5,4 @@ We have 3 .csv files here
 4. if you like to reproduce the data.
    Extract the "before_func" column and put in a "before" folder and keep the file name as corresponding id.
    Do same for "after_func" and put in after folder.
-   Then run "treesitter_beta3_test.py" 
+   Then run "treesitter_beta3_test.py" . it will create several files. Check "Vulresult.csv" for the outcome.
