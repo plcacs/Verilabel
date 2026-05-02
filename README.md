@@ -32,3 +32,21 @@ Run the analysis script:
    python Verilabel_beta3_test.py
 
 The script will generate several output files. The final fix classification results can be found in "Vulresult.csv".
+
+5. Reproducing Paper Results (Easier Method)
+For convenience, we have provided two ready-to-use folders:
+
+test_on_BigVul/ — contains input pairs for all 10 BigVul projects
+test_on_PrimeVul/ — contains input pairs for PrimeVul (test, train, and validation splits)
+
+To reproduce the results:
+
+Clone the repository.
+Navigate to any project folder inside test_on_BigVul/ or to a subfolder inside test_on_PrimeVul/.
+Run the corresponding script:
+
+   python Verilabel_beta3_test.py
+
+This will generate a Vulresult.csv file in that directory.
+
+All tables reported in the paper can be reproduced from the generated Vulresult.csv files.
