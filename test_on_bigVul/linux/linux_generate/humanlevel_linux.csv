@@ -1,0 +1,151 @@
+index,CVE_id,project,actual_class,predicted_class,classification,comments,codeLink,commit_id
+180817,CVE-2017-17853,linux,Fixing,Fixing,tp,This discards any existing signed bounds and relies on later steps (__update_reg_bounds(dst_reg)) to infer safe bounds from the unsigned range and the var_off (bitwise known bits),https://github.com/torvalds/linux/commit/4374f256ce8182019353c0c639bb8d0695b4c941,4374f256ce8182019353c0c639bb8d0695b4c941
+178949,CVE-2011-2918,linux,Not_Fixing,Not_Fixing,tn,Not fixing anything here,https://github.com/torvalds/linux/commit/a8b0ca17b80e92faab46ee7179ba9e99ccb61233,a8b0ca17b80e92faab46ee7179ba9e99ccb61233
+178750,CVE-2012-3520,linux,Fixing,Fixing,tp,"This closes the spoofing vector, preventing an unprivileged user from impersonating another process over netlink.",https://github.com/torvalds/linux/commit/e0e3cea46d31d23dc40df0a49a7a2c04fe8edfea,e0e3cea46d31d23dc40df0a49a7a2c04fe8edfea
+181451,CVE-2017-7374,linux,Fixing,Fixing,tp,The lines that were removed (the error?prone dereference) are exactly the ones that caused the vulnerability. ,https://github.com/torvalds/linux/commit/1b53cf9815bb4744958d41f3795d5d5a1d365e2d,1b53cf9815bb4744958d41f3795d5d5a1d365e2d
+179360,CVE-2012-6538,linux,Fixing,Fixing,tp,"This line ensures that no more than sizeof(algo->alg_name) bytes are copied, preventing an overflow if auth->alg_name is too long.",https://github.com/torvalds/linux/commit/4c87308bdea31a7b4828a51f6156e6f721a1fcc9,4c87308bdea31a7b4828a51f6156e6f721a1fcc9
+179271,CVE-2013-1943,linux,Fixing,Not_Fixing,fn,"if the memory range is not accessible for writing, the function jumps to out and returns -EINVAL, preventing the kernel from operating on invalid userspace pointers.",https://github.com/torvalds/linux/commit/fa3d315a4ce2c0891cdde262562e710d95fba19e,fa3d315a4ce2c0891cdde262562e710d95fba19e
+179222,CVE-2013-2850,linux,Fixing,Fixing,tp,"ensure that the copy operation never exceeds the destination buffer and that the result is always null?terminated, preventing an overflow",https://github.com/torvalds/linux/commit/cea4dcfdad926a27a18e188720efe0f2c9403456,cea4dcfdad926a27a18e188720efe0f2c9403456
+179006,CVE-2011-2918,linux,Fixing,Not_Fixing,fn,That extra argument caused the function to misinterpret the buffer size or flags,https://github.com/torvalds/linux/commit/a8b0ca17b80e92faab46ee7179ba9e99ccb61233,a8b0ca17b80e92faab46ee7179ba9e99ccb61233
+181435,CVE-2017-7533,linux,Fixing,Fixing,tp,"The vulnerability was a use?after?free race condition in vfs_rename, where the old dentry name could be freed while still being used by the fsnotify_move call.",https://github.com/torvalds/linux/commit/49d31c2f389acfe83417083e1208422b4091cd9e,49d31c2f389acfe83417083e1208422b4091cd9e
+178930,CVE-2011-3209,linux,Not_Fixing,Not_Fixing,tn,fix was inside a call function not here,https://github.com/torvalds/linux/commit/f8bd2258e2d520dff28c855658bd24bdafb5102d,f8bd2258e2d520dff28c855658bd24bdafb5102d
+180944,CVE-2017-14106,linux,Fixing,Fixing,tp,"an assignment that ensures a valid minimum value, preventing the division-by-zero issue",https://github.com/torvalds/linux/commit/499350a5a6e7512d9ed369ed63a4244b6536f4f8,499350a5a6e7512d9ed369ed63a4244b6536f4f8
+181448,CVE-2017-7472,linux,Fixing,Fixing,tp,"The fix simply removes the assertion, allowing the function to continue without crashing.",https://github.com/torvalds/linux/commit/c9f838d104fed6f2f61d68164712e3204bf5271b,c9f838d104fed6f2f61d68164712e3204bf5271b
+182897,CVE-2019-9003,linux,Fixing,Not_Fixing,fn,New cleanup function called,https://github.com/torvalds/linux/commit/77f8269606bf95fcb232ee86f6da80886f1dfae8,77f8269606bf95fcb232ee86f6da80886f1dfae8
+180535,CVE-2016-3134,linux,Not_Fixing,Not_Fixing,tn, this change alone does not perform what the CVE required,https://github.com/torvalds/linux/commit/54d83fc74aa9ec72794373cb47432c5f7fb1a309,54d83fc74aa9ec72794373cb47432c5f7fb1a309
+178899,CVE-2011-4112,linux,Fixing,Fixing,tp,The after version adds IFF_TX_SKB_SHARING to the flags being cleared,https://github.com/torvalds/linux/commit/550fd08c2cebad61c548def135f67aba284c6162,550fd08c2cebad61c548def135f67aba284c6162
+180662,CVE-2015-8839,linux,Fixing,Fixing,tp,The vulnerability was a race condition in ext4_punch_hole() that could lead to page cache corruption.,https://github.com/torvalds/linux/commit/ea3d7209ca01da209cda6f0dea8be9cc4b7a933b,ea3d7209ca01da209cda6f0dea8be9cc4b7a933b
+179808,CVE-2015-2925,linux,Fixing,Fixing,tp,This is a clear logical fix – adding a condition that handles an error scenario,https://github.com/torvalds/linux/commit/397d425dc26da728396e66d392d5dcb8dac30c37,397d425dc26da728396e66d392d5dcb8dac30c37
+178765,CVE-2012-2669,linux,Fixing,Fixing,tp,"The main fix is the addition of a check for the message's origin. The code now verifies that the nl_pid (Netlink Process ID) of the sender is zero (addr.nl_pid), which is the designated ID for the kernel",https://github.com/torvalds/linux/commit/bcc2c9c3fff859e0eb019fe6fec26f9b8eba795c,bcc2c9c3fff859e0eb019fe6fec26f9b8eba795c
+178760,CVE-2012-3375,linux,Fixing,Not_Fixing,fn,"The patched version clears the list before jumping to the error path, ensuring proper cleanup and preventing the double-free.",https://github.com/torvalds/linux/commit/13d518074a952d33d47c428419693f63389547e9,13d518074a952d33d47c428419693f63389547e9
+178912,CVE-2011-4097,linux,Fixing,Not_Fixing,fn,long avoids the overflow,https://github.com/torvalds/linux/commit/56c6a8a4aadca809e04276eabe5552935c51387f,56c6a8a4aadca809e04276eabe5552935c51387f
+179212,CVE-2013-3227,,,,,,https://github.com/torvalds/linux/commit/2d6fbfe733f35c6b355c216644e08e149c61b271,2d6fbfe733f35c6b355c216644e08e149c61b271
+179241,CVE-2013-2548,,,,,,https://github.com/torvalds/linux/commit/9a5467bf7b6e9e02ec9c3da4e23747c05faeaac6,9a5467bf7b6e9e02ec9c3da4e23747c05faeaac6
+180335,CVE-2016-5195,,,,,,https://github.com/torvalds/linux/commit/19be0eaffa3ac7d8eb6784ad9bdbc7d67ed8e619,19be0eaffa3ac7d8eb6784ad9bdbc7d67ed8e619
+180714,CVE-2015-8324,,,,,,https://github.com/torvalds/linux/commit/744692dc059845b2a3022119871846e74d4f6e11,744692dc059845b2a3022119871846e74d4f6e11
+178753,CVE-2012-3511,,,,,,https://github.com/torvalds/linux/commit/9ab4233dd08036fe34a89c7dc6f47a8bf2eb29eb,9ab4233dd08036fe34a89c7dc6f47a8bf2eb29eb
+180575,CVE-2016-2548,,,,,,https://github.com/torvalds/linux/commit/b5a663aa426f4884c71cd8580adae73f33570f0d,b5a663aa426f4884c71cd8580adae73f33570f0d
+179155,CVE-2013-4483,,,,,,https://github.com/torvalds/linux/commit/6062a8dc0517bce23e3c2f7d2fea5e22411269a3,6062a8dc0517bce23e3c2f7d2fea5e22411269a3
+181354,CVE-2017-9059,,,,,,https://github.com/torvalds/linux/commit/c70422f760c120480fee4de6c38804c72aa26bc1,c70422f760c120480fee4de6c38804c72aa26bc1
+180848,CVE-2017-16534,,,,,,https://github.com/torvalds/linux/commit/2e1c42391ff2556387b3cb6308b24f6f65619feb,2e1c42391ff2556387b3cb6308b24f6f65619feb
+181324,CVE-2017-9059,,,,,,https://github.com/torvalds/linux/commit/c70422f760c120480fee4de6c38804c72aa26bc1,c70422f760c120480fee4de6c38804c72aa26bc1
+179800,CVE-2015-3212,,,,,,https://github.com/torvalds/linux/commit/2d45a02d0166caf2627fe91897c6ffc3b19514c4,2d45a02d0166caf2627fe91897c6ffc3b19514c4
+179216,CVE-2013-3223,,,,,,https://github.com/torvalds/linux/commit/ef3313e84acbf349caecae942ab3ab731471f1a1,ef3313e84acbf349caecae942ab3ab731471f1a1
+179978,CVE-2014-8172,,,,,,https://github.com/torvalds/linux/commit/eee5cc2702929fd41cce28058dc6d6717f723f87,eee5cc2702929fd41cce28058dc6d6717f723f87
+180659,CVE-2015-8839,,,,,,https://github.com/torvalds/linux/commit/ea3d7209ca01da209cda6f0dea8be9cc4b7a933b,ea3d7209ca01da209cda6f0dea8be9cc4b7a933b
+179366,CVE-2012-5375,,,,,,https://github.com/torvalds/linux/commit/9c52057c698fb96f8f07e7a4bcf4801a092bda89,9c52057c698fb96f8f07e7a4bcf4801a092bda89
+182357,CVE-2018-12714,,,,,,https://github.com/torvalds/linux/commit/81f9c4e4177d31ced6f52a89bb70e93bfb77ca03,81f9c4e4177d31ced6f52a89bb70e93bfb77ca03
+182706,CVE-2019-15538,,,,,,https://github.com/torvalds/linux/commit/1fb254aa983bf190cfd685d40c64a480a9bafaee,1fb254aa983bf190cfd685d40c64a480a9bafaee
+178710,CVE-2012-4444,,,,,,https://github.com/torvalds/linux/commit/70789d7052239992824628db8133de08dc78e593,70789d7052239992824628db8133de08dc78e593
+181566,CVE-2017-5547,,,,,,https://github.com/torvalds/linux/commit/6d104af38b570d37aa32a5803b04c354f8ed513d,6d104af38b570d37aa32a5803b04c354f8ed513d
+182350,CVE-2018-12896,,,,,,https://github.com/torvalds/linux/commit/78c9c4dfbf8c04883941445a195276bb4bb92c76,78c9c4dfbf8c04883941445a195276bb4bb92c76
+179052,CVE-2011-1768,,,,,,https://github.com/torvalds/linux/commit/d5aa407f59f5b83d2c50ec88f5bf56d40f1f8978,d5aa407f59f5b83d2c50ec88f5bf56d40f1f8978
+181317,CVE-2017-9059,,,,,,https://github.com/torvalds/linux/commit/c70422f760c120480fee4de6c38804c72aa26bc1,c70422f760c120480fee4de6c38804c72aa26bc1
+179809,CVE-2015-2925,,,,,,https://github.com/torvalds/linux/commit/397d425dc26da728396e66d392d5dcb8dac30c37,397d425dc26da728396e66d392d5dcb8dac30c37
+179535,CVE-2014-3534,,,,,,https://github.com/torvalds/linux/commit/dab6cf55f81a6e16b8147aed9a843e1691dcd318,dab6cf55f81a6e16b8147aed9a843e1691dcd318
+179044,CVE-2011-2182,,,,,,https://github.com/torvalds/linux/commit/cae13fe4cc3f24820ffb990c09110626837e85d4,cae13fe4cc3f24820ffb990c09110626837e85d4
+179205,CVE-2013-3234,,,,,,https://github.com/torvalds/linux/commit/4a184233f21645cf0b719366210ed445d1024d72,4a184233f21645cf0b719366210ed445d1024d72
+183409,CVE-2019-10638,,,,,,https://github.com/torvalds/linux/commit/55f0fc7a02de8f12757f4937143d8d5091b2e40b,55f0fc7a02de8f12757f4937143d8d5091b2e40b
+181612,CVE-2017-2647,,,,,,https://github.com/torvalds/linux/commit/c06cfb08b88dfbe13be44a69ae2fdc3a7c902d81,c06cfb08b88dfbe13be44a69ae2fdc3a7c902d81
+179519,CVE-2014-3611,,,,,,https://github.com/torvalds/linux/commit/2febc839133280d5a5e8e1179c94ea674489dae2,2febc839133280d5a5e8e1179c94ea674489dae2
+178910,CVE-2011-4112,,,,,,https://github.com/torvalds/linux/commit/550fd08c2cebad61c548def135f67aba284c6162,550fd08c2cebad61c548def135f67aba284c6162
+179672,CVE-2013-7271,,,,,,https://github.com/torvalds/linux/commit/f3d3342602f8bcbf37d7c46641cb9bca7618eb1c,f3d3342602f8bcbf37d7c46641cb9bca7618eb1c
+178919,CVE-2011-3353,,,,,,https://github.com/torvalds/linux/commit/c2183d1e9b3f313dd8ba2b1b0197c8d9fb86a7ae,c2183d1e9b3f313dd8ba2b1b0197c8d9fb86a7ae
+179611,CVE-2014-1444,,,,,,https://github.com/torvalds/linux/commit/96b340406724d87e4621284ebac5e059d67b2194,96b340406724d87e4621284ebac5e059d67b2194
+182583,CVE-2017-18203,,,,,,https://github.com/torvalds/linux/commit/b9a41d21dceadf8104812626ef85dc56ee8a60ed,b9a41d21dceadf8104812626ef85dc56ee8a60ed
+179547,CVE-2014-3184,,,,,,https://github.com/torvalds/linux/commit/4ab25786c87eb20857bbb715c3ae34ec8fd6a214,4ab25786c87eb20857bbb715c3ae34ec8fd6a214
+180718,CVE-2015-8324,,,,,,https://github.com/torvalds/linux/commit/744692dc059845b2a3022119871846e74d4f6e11,744692dc059845b2a3022119871846e74d4f6e11
+179316,CVE-2013-0290,,,,,,https://github.com/torvalds/linux/commit/77c1090f94d1b0b5186fb13a1b71b47b1343f87f,77c1090f94d1b0b5186fb13a1b71b47b1343f87f
+182352,CVE-2018-12896,,,,,,https://github.com/torvalds/linux/commit/78c9c4dfbf8c04883941445a195276bb4bb92c76,78c9c4dfbf8c04883941445a195276bb4bb92c76
+178788,CVE-2012-2123,,,,,,https://github.com/torvalds/linux/commit/d52fc5dde171f030170a6cb78034d166b13c9445,d52fc5dde171f030170a6cb78034d166b13c9445
+181401,CVE-2017-8062,,,,,,https://github.com/torvalds/linux/commit/606142af57dad981b78707234cfbd15f9f7b7125,606142af57dad981b78707234cfbd15f9f7b7125
+180023,CVE-2016-9755,,,,,,https://github.com/torvalds/linux/commit/9b57da0630c9fd36ed7a20fc0f98dc82cc0777fa,9b57da0630c9fd36ed7a20fc0f98dc82cc0777fa
+180514,CVE-2016-3841,,,,,,https://github.com/torvalds/linux/commit/45f6fad84cc305103b28d73482b344d7f5b76f39,45f6fad84cc305103b28d73482b344d7f5b76f39
+178976,CVE-2011-2918,,,,,,https://github.com/torvalds/linux/commit/a8b0ca17b80e92faab46ee7179ba9e99ccb61233,a8b0ca17b80e92faab46ee7179ba9e99ccb61233
+183086,CVE-2014-3647,,,,,,https://github.com/torvalds/linux/commit/234f3ce485d54017f15cf5e0699cff4100121601,234f3ce485d54017f15cf5e0699cff4100121601
+179669,CVE-2013-7271,,,,,,https://github.com/torvalds/linux/commit/f3d3342602f8bcbf37d7c46641cb9bca7618eb1c,f3d3342602f8bcbf37d7c46641cb9bca7618eb1c
+178882,CVE-2011-4324,,,,,,https://github.com/torvalds/linux/commit/dc0b027dfadfcb8a5504f7d8052754bf8d501ab9,dc0b027dfadfcb8a5504f7d8052754bf8d501ab9
+180555,CVE-2016-3070,,,,,,https://github.com/torvalds/linux/commit/42cb14b110a5698ccf26ce59c4441722605a3743,42cb14b110a5698ccf26ce59c4441722605a3743
+179398,CVE-2011-2479,,,,,,https://github.com/torvalds/linux/commit/78f11a255749d09025f54d4e2df4fbcb031530e2,78f11a255749d09025f54d4e2df4fbcb031530e2
+182545,CVE-2017-18344,,,,,,https://github.com/torvalds/linux/commit/cef31d9af908243421258f1df35a4a644604efbe,cef31d9af908243421258f1df35a4a644604efbe
+180786,CVE-2012-6689,,,,,,https://github.com/torvalds/linux/commit/20e1db19db5d6b9e4e83021595eab0dc8f107bef,20e1db19db5d6b9e4e83021595eab0dc8f107bef
+180748,CVE-2014-9895,,,,,,https://github.com/torvalds/linux/commit/c88e739b1fad662240e99ecbd0bdaac871717987,c88e739b1fad662240e99ecbd0bdaac871717987
+182858,CVE-2019-11599,,,,,,https://github.com/torvalds/linux/commit/04f5866e41fb70690e28397487d8bd8eea7d712a,04f5866e41fb70690e28397487d8bd8eea7d712a
+182675,CVE-2019-16994,,,,,,https://github.com/torvalds/linux/commit/07f12b26e21ab359261bf75cfcb424fdc7daeb6d,07f12b26e21ab359261bf75cfcb424fdc7daeb6d
+179624,CVE-2014-0205,,,,,,https://github.com/torvalds/linux/commit/7ada876a8703f23befbb20a7465a702ee39b1704,7ada876a8703f23befbb20a7465a702ee39b1704
+180627,CVE-2015-8970,,,,,,https://github.com/torvalds/linux/commit/dd504589577d8e8e70f51f997ad487a4cb6c026f,dd504589577d8e8e70f51f997ad487a4cb6c026f
+179141,CVE-2013-4483,,,,,,https://github.com/torvalds/linux/commit/6062a8dc0517bce23e3c2f7d2fea5e22411269a3,6062a8dc0517bce23e3c2f7d2fea5e22411269a3
+181330,CVE-2017-9059,,,,,,https://github.com/torvalds/linux/commit/c70422f760c120480fee4de6c38804c72aa26bc1,c70422f760c120480fee4de6c38804c72aa26bc1
+178863,CVE-2011-4324,,,,,,https://github.com/torvalds/linux/commit/dc0b027dfadfcb8a5504f7d8052754bf8d501ab9,dc0b027dfadfcb8a5504f7d8052754bf8d501ab9
+178793,CVE-2012-1601,,,,,,https://github.com/torvalds/linux/commit/9c895160d25a76c21b65bad141b08e8d4f99afef,9c895160d25a76c21b65bad141b08e8d4f99afef
+180875,CVE-2017-15951,,,,,,https://github.com/torvalds/linux/commit/363b02dab09b3226f3bd1420dad9c72b79a42a76,363b02dab09b3226f3bd1420dad9c72b79a42a76
+179231,CVE-2013-2634,,,,,,https://github.com/torvalds/linux/commit/29cd8ae0e1a39e239a3a7b67da1986add1199fc0,29cd8ae0e1a39e239a3a7b67da1986add1199fc0
+181848,CVE-2016-9754,,,,,,https://github.com/torvalds/linux/commit/59643d1535eb220668692a5359de22545af579f6,59643d1535eb220668692a5359de22545af579f6
+179390,CVE-2011-3638,,,,,,https://github.com/torvalds/linux/commit/667eff35a1f56fa74ce98a0c7c29a40adc1ba4e3,667eff35a1f56fa74ce98a0c7c29a40adc1ba4e3
+178884,CVE-2011-4324,,,,,,https://github.com/torvalds/linux/commit/dc0b027dfadfcb8a5504f7d8052754bf8d501ab9,dc0b027dfadfcb8a5504f7d8052754bf8d501ab9
+182602,CVE-2017-15126,,,,,,https://github.com/torvalds/linux/commit/384632e67e0829deb8015ee6ad916b180049d252,384632e67e0829deb8015ee6ad916b180049d252
+182695,CVE-2019-15922,,,,,,https://github.com/torvalds/linux/commit/58ccd2d31e502c37e108b285bf3d343eb00c235b,58ccd2d31e502c37e108b285bf3d343eb00c235b
+178927,CVE-2011-3209,,,,,,https://github.com/torvalds/linux/commit/f8bd2258e2d520dff28c855658bd24bdafb5102d,f8bd2258e2d520dff28c855658bd24bdafb5102d
+180009,CVE-2013-7446,,,,,,https://github.com/torvalds/linux/commit/7d267278a9ece963d77eefec61630223fce08c6c,7d267278a9ece963d77eefec61630223fce08c6c
+180809,CVE-2017-17862,,,,,,https://github.com/torvalds/linux/commit/c131187db2d3fa2f8bf32fdf4e9a4ef805168467,c131187db2d3fa2f8bf32fdf4e9a4ef805168467
+182556,CVE-2017-18232,,,,,,https://github.com/torvalds/linux/commit/0558f33c06bb910e2879e355192227a8e8f0219d,0558f33c06bb910e2879e355192227a8e8f0219d
+179632,CVE-2014-0077,,,,,,https://github.com/torvalds/linux/commit/d8316f3991d207fe32881a9ac20241be8fa2bad0,d8316f3991d207fe32881a9ac20241be8fa2bad0
+179059,CVE-2011-1479,,,,,,https://github.com/torvalds/linux/commit/d0de4dc584ec6aa3b26fffea320a8457827768fc,d0de4dc584ec6aa3b26fffea320a8457827768fc
+179652,CVE-2013-7281,,,,,,https://github.com/torvalds/linux/commit/bceaa90240b6019ed73b49965eac7d167610be69,bceaa90240b6019ed73b49965eac7d167610be69
+179596,CVE-2014-2038,,,,,,https://github.com/torvalds/linux/commit/263b4509ec4d47e0da3e753f85a39ea12d1eff24,263b4509ec4d47e0da3e753f85a39ea12d1eff24
+179192,CVE-2013-4127,,,,,,https://github.com/torvalds/linux/commit/dd7633ecd553a5e304d349aa6f8eb8a0417098c5,dd7633ecd553a5e304d349aa6f8eb8a0417098c5
+180903,CVE-2017-15116,,,,,,https://github.com/torvalds/linux/commit/94f1bb15bed84ad6c893916b7e7b9db6f1d7eec6,94f1bb15bed84ad6c893916b7e7b9db6f1d7eec6
+179342,CVE-2013-0217,,,,,,https://github.com/torvalds/linux/commit/7d5145d8eb2b9791533ffe4dc003b129b9696c48,7d5145d8eb2b9791533ffe4dc003b129b9696c48
+181325,CVE-2017-9059,,,,,,https://github.com/torvalds/linux/commit/c70422f760c120480fee4de6c38804c72aa26bc1,c70422f760c120480fee4de6c38804c72aa26bc1
+183160,CVE-2015-8952,,,,,,https://github.com/torvalds/linux/commit/82939d7999dfc1f1998c4b1c12e2f19edbdff272,82939d7999dfc1f1998c4b1c12e2f19edbdff272
+181236,CVE-2017-10663,,,,,,https://github.com/torvalds/linux/commit/15d3042a937c13f5d9244241c7a9c8416ff6e82a,15d3042a937c13f5d9244241c7a9c8416ff6e82a
+180844,CVE-2017-16645,,,,,,https://github.com/torvalds/linux/commit/ea04efee7635c9120d015dcdeeeb6988130cb67a,ea04efee7635c9120d015dcdeeeb6988130cb67a
+178867,CVE-2011-4324,,,,,,https://github.com/torvalds/linux/commit/dc0b027dfadfcb8a5504f7d8052754bf8d501ab9,dc0b027dfadfcb8a5504f7d8052754bf8d501ab9
+180729,CVE-2015-7566,,,,,,https://github.com/torvalds/linux/commit/cb3232138e37129e88240a98a1d2aba2187ff57c,cb3232138e37129e88240a98a1d2aba2187ff57c
+180799,CVE-2017-1000251,,,,,,https://github.com/torvalds/linux/commit/f2fcfcd670257236ebf2088bbdf26f6a8ef459fe,f2fcfcd670257236ebf2088bbdf26f6a8ef459fe
+179076,CVE-2011-0716,,,,,,https://github.com/torvalds/linux/commit/6b0d6a9b4296fa16a28d10d416db7a770fc03287,6b0d6a9b4296fa16a28d10d416db7a770fc03287
+180509,CVE-2016-3841,,,,,,https://github.com/torvalds/linux/commit/45f6fad84cc305103b28d73482b344d7f5b76f39,45f6fad84cc305103b28d73482b344d7f5b76f39
+181400,CVE-2017-8062,,,,,,https://github.com/torvalds/linux/commit/606142af57dad981b78707234cfbd15f9f7b7125,606142af57dad981b78707234cfbd15f9f7b7125
+179060,CVE-2011-1479,,,,,,https://github.com/torvalds/linux/commit/d0de4dc584ec6aa3b26fffea320a8457827768fc,d0de4dc584ec6aa3b26fffea320a8457827768fc
+180029,CVE-2016-9588,,,,,,https://github.com/torvalds/linux/commit/ef85b67385436ddc1998f45f1d6a210f935b3388,ef85b67385436ddc1998f45f1d6a210f935b3388
+179671,CVE-2013-7271,,,,,,https://github.com/torvalds/linux/commit/f3d3342602f8bcbf37d7c46641cb9bca7618eb1c,f3d3342602f8bcbf37d7c46641cb9bca7618eb1c
+179349,CVE-2012-6549,,,,,,https://github.com/torvalds/linux/commit/fe685aabf7c8c9f138e5ea900954d295bf229175,fe685aabf7c8c9f138e5ea900954d295bf229175
+183099,CVE-2015-1805,,,,,,https://github.com/torvalds/linux/commit/637b58c2887e5e57850865839cc75f59184b23d1,637b58c2887e5e57850865839cc75f59184b23d1
+180818,CVE-2017-17852,,,,,,https://github.com/torvalds/linux/commit/468f6eafa6c44cb2c5d8aad35e12f06c240a812a,468f6eafa6c44cb2c5d8aad35e12f06c240a812a
+181292,CVE-2017-9150,,,,,,https://github.com/torvalds/linux/commit/0d0e57697f162da4aa218b5feafe614fb666db07,0d0e57697f162da4aa218b5feafe614fb666db07
+180566,CVE-2016-2550,,,,,,https://github.com/torvalds/linux/commit/415e3d3e90ce9e18727e8843ae343eda5a58fad6,415e3d3e90ce9e18727e8843ae343eda5a58fad6
+179214,CVE-2013-3225,,,,,,https://github.com/torvalds/linux/commit/e11e0455c0d7d3d62276a0c55d9dfbc16779d691,e11e0455c0d7d3d62276a0c55d9dfbc16779d691
+181239,CVE-2017-10661,,,,,,https://github.com/torvalds/linux/commit/1e38da300e1e395a15048b0af1e5305bd91402f6,1e38da300e1e395a15048b0af1e5305bd91402f6
+179490,CVE-2014-4014,,,,,,https://github.com/torvalds/linux/commit/23adbe12ef7d3d4195e80800ab36b37bee28cd03,23adbe12ef7d3d4195e80800ab36b37bee28cd03
+182574,CVE-2017-18221,,,,,,https://github.com/torvalds/linux/commit/70feee0e1ef331b22cc51f383d532a0d043fbdcc,70feee0e1ef331b22cc51f383d532a0d043fbdcc
+181651,CVE-2016-10229,,,,,,https://github.com/torvalds/linux/commit/197c949e7798fbf28cfadc69d9ca0c2abbf93191,197c949e7798fbf28cfadc69d9ca0c2abbf93191
+182044,CVE-2015-5224,,,,,,https://github.com/karelzak/util-linux/commit/bde91c85bdc77975155058276f99d2e0f5eab5a9,bde91c85bdc77975155058276f99d2e0f5eab5a9
+178825,CVE-2012-0058,,,,,,https://github.com/torvalds/linux/commit/802f43594d6e4d2ac61086d239153c17873a0428,802f43594d6e4d2ac61086d239153c17873a0428
+179234,CVE-2013-2548,,,,,,https://github.com/torvalds/linux/commit/9a5467bf7b6e9e02ec9c3da4e23747c05faeaac6,9a5467bf7b6e9e02ec9c3da4e23747c05faeaac6
+182521,CVE-2018-5873,,,,,,https://github.com/torvalds/linux/commit/073c516ff73557a8f7315066856c04b50383ac34,073c516ff73557a8f7315066856c04b50383ac34
+182348,CVE-2018-12904,,,,,,https://github.com/torvalds/linux/commit/727ba748e110b4de50d142edca9d6a9b7e6111d8,727ba748e110b4de50d142edca9d6a9b7e6111d8
+179459,CVE-2014-4943,,,,,,https://github.com/torvalds/linux/commit/3cf521f7dc87c031617fd47e4b7aa2593c2f3daf,3cf521f7dc87c031617fd47e4b7aa2593c2f3daf
+179744,CVE-2015-7990,,,,,,https://github.com/torvalds/linux/commit/8c7188b23474cca017b3ef354c4a58456f68303a,8c7188b23474cca017b3ef354c4a58456f68303a
+179344,CVE-2013-0216,,,,,,https://github.com/torvalds/linux/commit/48856286b64e4b66ec62b94e504d0b29c1ade664,48856286b64e4b66ec62b94e504d0b29c1ade664
+178856,CVE-2011-4324,,,,,,https://github.com/torvalds/linux/commit/dc0b027dfadfcb8a5504f7d8052754bf8d501ab9,dc0b027dfadfcb8a5504f7d8052754bf8d501ab9
+179197,CVE-2013-3302,,,,,,https://github.com/torvalds/linux/commit/ea702b80e0bbb2448e201472127288beb82ca2fe,ea702b80e0bbb2448e201472127288beb82ca2fe
+183064,CVE-2013-4592,,,,,,https://github.com/torvalds/linux/commit/e40f193f5bb022e927a57a4f5d5194e4f12ddb74,e40f193f5bb022e927a57a4f5d5194e4f12ddb74
+183181,CVE-2017-1000252,,,,,,https://github.com/torvalds/linux/commit/3a8b0677fc6180a467e26cc32ce6b0c09a32f9bb,3a8b0677fc6180a467e26cc32ce6b0c09a32f9bb
+180604,CVE-2016-2186,,,,,,https://github.com/torvalds/linux/commit/9c6ba456711687b794dcf285856fc14e2c76074f,9c6ba456711687b794dcf285856fc14e2c76074f
+182779,CVE-2019-13233,,,,,,https://github.com/torvalds/linux/commit/de9f869616dd95e95c00bdd6b0fcd3421e8a4323,de9f869616dd95e95c00bdd6b0fcd3421e8a4323
+181361,CVE-2017-8924,,,,,,https://github.com/torvalds/linux/commit/654b404f2a222f918af9b0cd18ad469d0c941a8e,654b404f2a222f918af9b0cd18ad469d0c941a8e
+179457,CVE-2014-5045,,,,,,https://github.com/torvalds/linux/commit/295dc39d941dc2ae53d5c170365af4c9d5c16212,295dc39d941dc2ae53d5c170365af4c9d5c16212
+179200,CVE-2013-3237,,,,,,https://github.com/torvalds/linux/commit/d5e0d0f607a7a029c6563a0470d88255c89a8d11,d5e0d0f607a7a029c6563a0470d88255c89a8d11
+180863,CVE-2017-15951,,,,,,https://github.com/torvalds/linux/commit/363b02dab09b3226f3bd1420dad9c72b79a42a76,363b02dab09b3226f3bd1420dad9c72b79a42a76
+180187,CVE-2016-6197,,,,,,https://github.com/torvalds/linux/commit/11f3710417d026ea2f4fcf362d866342c5274185,11f3710417d026ea2f4fcf362d866342c5274185
+179733,CVE-2015-8569,,,,,,https://github.com/torvalds/linux/commit/09ccfd238e5a0e670d8178cf50180ea81ae09ae1,09ccfd238e5a0e670d8178cf50180ea81ae09ae1
+182856,CVE-2019-11599,,,,,,https://github.com/torvalds/linux/commit/04f5866e41fb70690e28397487d8bd8eea7d712a,04f5866e41fb70690e28397487d8bd8eea7d712a
+183066,CVE-2013-3232,,,,,,https://github.com/torvalds/linux/commit/c802d759623acbd6e1ee9fbdabae89159a513913,c802d759623acbd6e1ee9fbdabae89159a513913
+180824,CVE-2017-17805,,,,,,https://github.com/torvalds/linux/commit/ecaaab5649781c5a0effdaf298a925063020500e,ecaaab5649781c5a0effdaf298a925063020500e
+180022,CVE-2016-9755,,,,,,https://github.com/torvalds/linux/commit/9b57da0630c9fd36ed7a20fc0f98dc82cc0777fa,9b57da0630c9fd36ed7a20fc0f98dc82cc0777fa
+179013,CVE-2011-2918,,,,,,https://github.com/torvalds/linux/commit/a8b0ca17b80e92faab46ee7179ba9e99ccb61233,a8b0ca17b80e92faab46ee7179ba9e99ccb61233
+179338,CVE-2013-0268,,,,,,https://github.com/torvalds/linux/commit/c903f0456bc69176912dee6dd25c6a66ee1aed00,c903f0456bc69176912dee6dd25c6a66ee1aed00
+179275,CVE-2013-1860,,,,,,https://github.com/torvalds/linux/commit/c0f5ecee4e741667b2493c742b60b6218d40b3aa,c0f5ecee4e741667b2493c742b60b6218d40b3aa
+181458,CVE-2017-7277,,,,,,https://github.com/torvalds/linux/commit/8605330aac5a5785630aec8f64378a54891937cc,8605330aac5a5785630aec8f64378a54891937cc
+180519,CVE-2016-3699,,,,,,https://github.com/mjg59/linux/commit/a4a5ed2835e8ea042868b7401dced3f517cafa76,a4a5ed2835e8ea042868b7401dced3f517cafa76
+179313,CVE-2013-0313,,,,,,https://github.com/torvalds/linux/commit/a67adb997419fb53540d4a4f79c6471c60bc69b6,a67adb997419fb53540d4a4f79c6471c60bc69b6
