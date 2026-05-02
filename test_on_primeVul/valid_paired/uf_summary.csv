@@ -1,0 +1,6 @@
+metric,count
+total_pairs,459
+q1_has_uf,357
+q2_same_set,347
+q3_more_in_before,21
+q4_more_in_after,72

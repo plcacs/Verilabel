@@ -1,0 +1,6 @@
+metric,count,,
+total_pairs,411,,
+q1_has_uf,325,,
+q2_same_set,314,314-(411-325),228
+q3_more_in_before,17,,
+q4_more_in_after,60,,
