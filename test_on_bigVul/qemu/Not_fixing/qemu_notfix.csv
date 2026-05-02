@@ -1,0 +1,3835 @@
+id,project,prediction,before_func,after_func
+177805_CVE-2018-19489,qemu,Not_Fixing,"static void coroutine_fn v9fs_wstat(void *opaque)
+{
+    int32_t fid;
+    int err = 0;
+    int16_t unused;
+    V9fsStat v9stat;
+    size_t offset = 7;
+     struct stat stbuf;
+     V9fsFidState *fidp;
+     V9fsPDU *pdu = opaque;
+ 
+     v9fs_stat_init(&v9stat);
+     err = pdu_unmarshal(pdu, offset, ""dwS"", &fid, &unused, &v9stat);
+        goto out_nofid;
+    }
+","static void coroutine_fn v9fs_wstat(void *opaque)
+{
+    int32_t fid;
+    int err = 0;
+    int16_t unused;
+    V9fsStat v9stat;
+    size_t offset = 7;
+     struct stat stbuf;
+     V9fsFidState *fidp;
+     V9fsPDU *pdu = opaque;
+    V9fsState *s = pdu->s;
+ 
+     v9fs_stat_init(&v9stat);
+     err = pdu_unmarshal(pdu, offset, ""dwS"", &fid, &unused, &v9stat);
+        goto out_nofid;
+    }
+"
+177868_CVE-2017-13673,qemu,Not_Fixing,"static void vga_draw_graphic(VGACommonState *s, int full_update)
+{
+    DisplaySurface *surface = qemu_console_surface(s->con);
+    int y1, y, update, linesize, y_start, double_scan, mask, depth;
+    int width, height, shift_control, line_offset, bwidth, bits;
+    ram_addr_t page0, page1;
+    DirtyBitmapSnapshot *snap = NULL;
+    int disp_width, multi_scan, multi_run;
+    uint8_t *d;
+    uint32_t v, addr1, addr;
+    vga_draw_line_func *vga_draw_line = NULL;
+    bool share_surface;
+    pixman_format_code_t format;
+#ifdef HOST_WORDS_BIGENDIAN
+    bool byteswap = !s->big_endian_fb;
+#else
+    bool byteswap = s->big_endian_fb;
+#endif
+
+    full_update |= update_basic_params(s);
+
+    s->get_resolution(s, &width, &height);
+    disp_width = width;
+
+    shift_control = (s->gr[VGA_GFX_MODE] >> 5) & 3;
+    double_scan = (s->cr[VGA_CRTC_MAX_SCAN] >> 7);
+    if (shift_control != 1) {
+        multi_scan = (((s->cr[VGA_CRTC_MAX_SCAN] & 0x1f) + 1) << double_scan)
+            - 1;
+    } else {
+        /* in CGA modes, multi_scan is ignored */
+        /* XXX: is it correct ? */
+        multi_scan = double_scan;
+    }
+    multi_run = multi_scan;
+    if (shift_control != s->shift_control ||
+        double_scan != s->double_scan) {
+        full_update = 1;
+        s->shift_control = shift_control;
+        s->double_scan = double_scan;
+    }
+
+    if (shift_control == 0) {
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            disp_width <<= 1;
+        }
+    } else if (shift_control == 1) {
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            disp_width <<= 1;
+        }
+    }
+
+    depth = s->get_bpp(s);
+
+    /*
+     * Check whether we can share the surface with the backend
+     * or whether we need a shadow surface. We share native
+     * endian surfaces for 15bpp and above and byteswapped
+     * surfaces for 24bpp and above.
+     */
+    format = qemu_default_pixman_format(depth, !byteswap);
+    if (format) {
+        share_surface = dpy_gfx_check_format(s->con, format)
+            && !s->force_shadow;
+    } else {
+        share_surface = false;
+    }
+    if (s->line_offset != s->last_line_offset ||
+        disp_width != s->last_width ||
+        height != s->last_height ||
+        s->last_depth != depth ||
+        s->last_byteswap != byteswap ||
+        share_surface != is_buffer_shared(surface)) {
+        if (share_surface) {
+            surface = qemu_create_displaysurface_from(disp_width,
+                    height, format, s->line_offset,
+                    s->vram_ptr + (s->start_addr * 4));
+            dpy_gfx_replace_surface(s->con, surface);
+        } else {
+            qemu_console_resize(s->con, disp_width, height);
+            surface = qemu_console_surface(s->con);
+        }
+        s->last_scr_width = disp_width;
+        s->last_scr_height = height;
+        s->last_width = disp_width;
+        s->last_height = height;
+        s->last_line_offset = s->line_offset;
+        s->last_depth = depth;
+        s->last_byteswap = byteswap;
+        full_update = 1;
+    } else if (is_buffer_shared(surface) &&
+               (full_update || surface_data(surface) != s->vram_ptr
+                + (s->start_addr * 4))) {
+        pixman_format_code_t format =
+            qemu_default_pixman_format(depth, !byteswap);
+        surface = qemu_create_displaysurface_from(disp_width,
+                height, format, s->line_offset,
+                s->vram_ptr + (s->start_addr * 4));
+        dpy_gfx_replace_surface(s->con, surface);
+    }
+
+    if (shift_control == 0) {
+        full_update |= update_palette16(s);
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            v = VGA_DRAW_LINE4D2;
+        } else {
+            v = VGA_DRAW_LINE4;
+        }
+        bits = 4;
+    } else if (shift_control == 1) {
+        full_update |= update_palette16(s);
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            v = VGA_DRAW_LINE2D2;
+        } else {
+            v = VGA_DRAW_LINE2;
+        }
+        bits = 4;
+    } else {
+        switch(s->get_bpp(s)) {
+        default:
+        case 0:
+            full_update |= update_palette256(s);
+            v = VGA_DRAW_LINE8D2;
+            bits = 4;
+            break;
+        case 8:
+            full_update |= update_palette256(s);
+            v = VGA_DRAW_LINE8;
+            bits = 8;
+            break;
+        case 15:
+            v = s->big_endian_fb ? VGA_DRAW_LINE15_BE : VGA_DRAW_LINE15_LE;
+            bits = 16;
+            break;
+        case 16:
+            v = s->big_endian_fb ? VGA_DRAW_LINE16_BE : VGA_DRAW_LINE16_LE;
+            bits = 16;
+            break;
+        case 24:
+            v = s->big_endian_fb ? VGA_DRAW_LINE24_BE : VGA_DRAW_LINE24_LE;
+            bits = 24;
+            break;
+        case 32:
+            v = s->big_endian_fb ? VGA_DRAW_LINE32_BE : VGA_DRAW_LINE32_LE;
+            bits = 32;
+            break;
+        }
+    }
+    vga_draw_line = vga_draw_line_table[v];
+
+    if (!is_buffer_shared(surface) && s->cursor_invalidate) {
+        s->cursor_invalidate(s);
+    }
+
+    line_offset = s->line_offset;
+#if 0
+    printf(""w=%d h=%d v=%d line_offset=%d cr[0x09]=0x%02x cr[0x17]=0x%02x linecmp=%d sr[0x01]=0x%02x\n"",
+           width, height, v, line_offset, s->cr[9], s->cr[VGA_CRTC_MODE],
+           s->line_compare, sr(s, VGA_SEQ_CLOCK_MODE));
+#endif
+    addr1 = (s->start_addr * 4);
+    bwidth = (width * bits + 7) / 8;
+    y_start = -1;
+    d = surface_data(surface);
+    linesize = surface_stride(surface);
+    y1 = 0;
+
+     if (!full_update) {
+         vga_sync_dirty_bitmap(s);
+         snap = memory_region_snapshot_and_clear_dirty(&s->vram, addr1,
+                                                      bwidth * height,
+                                                       DIRTY_MEMORY_VGA);
+     }
+    for(y = 0; y < height; y++) {
+        addr = addr1;
+        if (!(s->cr[VGA_CRTC_MODE] & 1)) {
+            int shift;
+            /* CGA compatibility handling */
+            shift = 14 + ((s->cr[VGA_CRTC_MODE] >> 6) & 1);
+            addr = (addr & ~(1 << shift)) | ((y1 & 1) << shift);
+        }
+        if (!(s->cr[VGA_CRTC_MODE] & 2)) {
+            addr = (addr & ~0x8000) | ((y1 & 2) << 14);
+        }
+        update = full_update;
+        page0 = addr;
+        page1 = addr + bwidth - 1;
+        if (full_update) {
+            update = 1;
+        } else {
+            update = memory_region_snapshot_get_dirty(&s->vram, snap,
+                                                      page0, page1 - page0);
+        }
+        /* explicit invalidation for the hardware cursor (cirrus only) */
+        update |= vga_scanline_invalidated(s, y);
+        if (update) {
+            if (y_start < 0)
+                y_start = y;
+            if (!(is_buffer_shared(surface))) {
+                vga_draw_line(s, d, s->vram_ptr + addr, width);
+                if (s->cursor_draw_line)
+                    s->cursor_draw_line(s, d, y);
+            }
+        } else {
+            if (y_start >= 0) {
+                /* flush to display */
+                dpy_gfx_update(s->con, 0, y_start,
+                               disp_width, y - y_start);
+                y_start = -1;
+            }
+        }
+        if (!multi_run) {
+            mask = (s->cr[VGA_CRTC_MODE] & 3) ^ 3;
+            if ((y1 & mask) == mask)
+                addr1 += line_offset;
+            y1++;
+            multi_run = multi_scan;
+        } else {
+            multi_run--;
+        }
+        /* line compare acts on the displayed lines */
+        if (y == s->line_compare)
+            addr1 = 0;
+        d += linesize;
+    }
+    if (y_start >= 0) {
+        /* flush to display */
+        dpy_gfx_update(s->con, 0, y_start,
+                       disp_width, y - y_start);
+    }
+    g_free(snap);
+    memset(s->invalidated_y_table, 0, sizeof(s->invalidated_y_table));
+}
+","static void vga_draw_graphic(VGACommonState *s, int full_update)
+{
+    DisplaySurface *surface = qemu_console_surface(s->con);
+    int y1, y, update, linesize, y_start, double_scan, mask, depth;
+    int width, height, shift_control, line_offset, bwidth, bits;
+    ram_addr_t page0, page1;
+    DirtyBitmapSnapshot *snap = NULL;
+    int disp_width, multi_scan, multi_run;
+    uint8_t *d;
+    uint32_t v, addr1, addr;
+    vga_draw_line_func *vga_draw_line = NULL;
+    bool share_surface;
+    pixman_format_code_t format;
+#ifdef HOST_WORDS_BIGENDIAN
+    bool byteswap = !s->big_endian_fb;
+#else
+    bool byteswap = s->big_endian_fb;
+#endif
+
+    full_update |= update_basic_params(s);
+
+    s->get_resolution(s, &width, &height);
+    disp_width = width;
+
+    shift_control = (s->gr[VGA_GFX_MODE] >> 5) & 3;
+    double_scan = (s->cr[VGA_CRTC_MAX_SCAN] >> 7);
+    if (shift_control != 1) {
+        multi_scan = (((s->cr[VGA_CRTC_MAX_SCAN] & 0x1f) + 1) << double_scan)
+            - 1;
+    } else {
+        /* in CGA modes, multi_scan is ignored */
+        /* XXX: is it correct ? */
+        multi_scan = double_scan;
+    }
+    multi_run = multi_scan;
+    if (shift_control != s->shift_control ||
+        double_scan != s->double_scan) {
+        full_update = 1;
+        s->shift_control = shift_control;
+        s->double_scan = double_scan;
+    }
+
+    if (shift_control == 0) {
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            disp_width <<= 1;
+        }
+    } else if (shift_control == 1) {
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            disp_width <<= 1;
+        }
+    }
+
+    depth = s->get_bpp(s);
+
+    /*
+     * Check whether we can share the surface with the backend
+     * or whether we need a shadow surface. We share native
+     * endian surfaces for 15bpp and above and byteswapped
+     * surfaces for 24bpp and above.
+     */
+    format = qemu_default_pixman_format(depth, !byteswap);
+    if (format) {
+        share_surface = dpy_gfx_check_format(s->con, format)
+            && !s->force_shadow;
+    } else {
+        share_surface = false;
+    }
+    if (s->line_offset != s->last_line_offset ||
+        disp_width != s->last_width ||
+        height != s->last_height ||
+        s->last_depth != depth ||
+        s->last_byteswap != byteswap ||
+        share_surface != is_buffer_shared(surface)) {
+        if (share_surface) {
+            surface = qemu_create_displaysurface_from(disp_width,
+                    height, format, s->line_offset,
+                    s->vram_ptr + (s->start_addr * 4));
+            dpy_gfx_replace_surface(s->con, surface);
+        } else {
+            qemu_console_resize(s->con, disp_width, height);
+            surface = qemu_console_surface(s->con);
+        }
+        s->last_scr_width = disp_width;
+        s->last_scr_height = height;
+        s->last_width = disp_width;
+        s->last_height = height;
+        s->last_line_offset = s->line_offset;
+        s->last_depth = depth;
+        s->last_byteswap = byteswap;
+        full_update = 1;
+    } else if (is_buffer_shared(surface) &&
+               (full_update || surface_data(surface) != s->vram_ptr
+                + (s->start_addr * 4))) {
+        pixman_format_code_t format =
+            qemu_default_pixman_format(depth, !byteswap);
+        surface = qemu_create_displaysurface_from(disp_width,
+                height, format, s->line_offset,
+                s->vram_ptr + (s->start_addr * 4));
+        dpy_gfx_replace_surface(s->con, surface);
+    }
+
+    if (shift_control == 0) {
+        full_update |= update_palette16(s);
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            v = VGA_DRAW_LINE4D2;
+        } else {
+            v = VGA_DRAW_LINE4;
+        }
+        bits = 4;
+    } else if (shift_control == 1) {
+        full_update |= update_palette16(s);
+        if (sr(s, VGA_SEQ_CLOCK_MODE) & 8) {
+            v = VGA_DRAW_LINE2D2;
+        } else {
+            v = VGA_DRAW_LINE2;
+        }
+        bits = 4;
+    } else {
+        switch(s->get_bpp(s)) {
+        default:
+        case 0:
+            full_update |= update_palette256(s);
+            v = VGA_DRAW_LINE8D2;
+            bits = 4;
+            break;
+        case 8:
+            full_update |= update_palette256(s);
+            v = VGA_DRAW_LINE8;
+            bits = 8;
+            break;
+        case 15:
+            v = s->big_endian_fb ? VGA_DRAW_LINE15_BE : VGA_DRAW_LINE15_LE;
+            bits = 16;
+            break;
+        case 16:
+            v = s->big_endian_fb ? VGA_DRAW_LINE16_BE : VGA_DRAW_LINE16_LE;
+            bits = 16;
+            break;
+        case 24:
+            v = s->big_endian_fb ? VGA_DRAW_LINE24_BE : VGA_DRAW_LINE24_LE;
+            bits = 24;
+            break;
+        case 32:
+            v = s->big_endian_fb ? VGA_DRAW_LINE32_BE : VGA_DRAW_LINE32_LE;
+            bits = 32;
+            break;
+        }
+    }
+    vga_draw_line = vga_draw_line_table[v];
+
+    if (!is_buffer_shared(surface) && s->cursor_invalidate) {
+        s->cursor_invalidate(s);
+    }
+
+    line_offset = s->line_offset;
+#if 0
+    printf(""w=%d h=%d v=%d line_offset=%d cr[0x09]=0x%02x cr[0x17]=0x%02x linecmp=%d sr[0x01]=0x%02x\n"",
+           width, height, v, line_offset, s->cr[9], s->cr[VGA_CRTC_MODE],
+           s->line_compare, sr(s, VGA_SEQ_CLOCK_MODE));
+#endif
+    addr1 = (s->start_addr * 4);
+    bwidth = (width * bits + 7) / 8;
+    y_start = -1;
+    d = surface_data(surface);
+    linesize = surface_stride(surface);
+    y1 = 0;
+
+     if (!full_update) {
+         vga_sync_dirty_bitmap(s);
+         snap = memory_region_snapshot_and_clear_dirty(&s->vram, addr1,
+                                                      line_offset * height,
+                                                       DIRTY_MEMORY_VGA);
+     }
+    for(y = 0; y < height; y++) {
+        addr = addr1;
+        if (!(s->cr[VGA_CRTC_MODE] & 1)) {
+            int shift;
+            /* CGA compatibility handling */
+            shift = 14 + ((s->cr[VGA_CRTC_MODE] >> 6) & 1);
+            addr = (addr & ~(1 << shift)) | ((y1 & 1) << shift);
+        }
+        if (!(s->cr[VGA_CRTC_MODE] & 2)) {
+            addr = (addr & ~0x8000) | ((y1 & 2) << 14);
+        }
+        update = full_update;
+        page0 = addr;
+        page1 = addr + bwidth - 1;
+        if (full_update) {
+            update = 1;
+        } else {
+            update = memory_region_snapshot_get_dirty(&s->vram, snap,
+                                                      page0, page1 - page0);
+        }
+        /* explicit invalidation for the hardware cursor (cirrus only) */
+        update |= vga_scanline_invalidated(s, y);
+        if (update) {
+            if (y_start < 0)
+                y_start = y;
+            if (!(is_buffer_shared(surface))) {
+                vga_draw_line(s, d, s->vram_ptr + addr, width);
+                if (s->cursor_draw_line)
+                    s->cursor_draw_line(s, d, y);
+            }
+        } else {
+            if (y_start >= 0) {
+                /* flush to display */
+                dpy_gfx_update(s->con, 0, y_start,
+                               disp_width, y - y_start);
+                y_start = -1;
+            }
+        }
+        if (!multi_run) {
+            mask = (s->cr[VGA_CRTC_MODE] & 3) ^ 3;
+            if ((y1 & mask) == mask)
+                addr1 += line_offset;
+            y1++;
+            multi_run = multi_scan;
+        } else {
+            multi_run--;
+        }
+        /* line compare acts on the displayed lines */
+        if (y == s->line_compare)
+            addr1 = 0;
+        d += linesize;
+    }
+    if (y_start >= 0) {
+        /* flush to display */
+        dpy_gfx_update(s->con, 0, y_start,
+                       disp_width, y - y_start);
+    }
+    g_free(snap);
+    memset(s->invalidated_y_table, 0, sizeof(s->invalidated_y_table));
+}
+"
+177896_CVE-2013-2007,qemu,Not_Fixing,"static void become_daemon(const char *pidfile)
+{
+#ifndef _WIN32
+    pid_t pid, sid;
+
+    pid = fork();
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    if (pidfile) {
+        if (!ga_open_pidfile(pidfile)) {
+            g_critical(""failed to create pidfile"");
+            exit(EXIT_FAILURE);
+         }
+     }
+ 
+    umask(0);
+     sid = setsid();
+     if (sid < 0) {
+         goto fail;
+    }
+    if ((chdir(""/"")) < 0) {
+        goto fail;
+    }
+
+    reopen_fd_to_null(STDIN_FILENO);
+    reopen_fd_to_null(STDOUT_FILENO);
+    reopen_fd_to_null(STDERR_FILENO);
+    return;
+
+fail:
+    if (pidfile) {
+        unlink(pidfile);
+    }
+    g_critical(""failed to daemonize"");
+    exit(EXIT_FAILURE);
+#endif
+}
+","static void become_daemon(const char *pidfile)
+{
+#ifndef _WIN32
+    pid_t pid, sid;
+
+    pid = fork();
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    if (pidfile) {
+        if (!ga_open_pidfile(pidfile)) {
+            g_critical(""failed to create pidfile"");
+            exit(EXIT_FAILURE);
+         }
+     }
+ 
+    umask(S_IRWXG | S_IRWXO);
+     sid = setsid();
+     if (sid < 0) {
+         goto fail;
+    }
+    if ((chdir(""/"")) < 0) {
+        goto fail;
+    }
+
+    reopen_fd_to_null(STDIN_FILENO);
+    reopen_fd_to_null(STDOUT_FILENO);
+    reopen_fd_to_null(STDERR_FILENO);
+    return;
+
+fail:
+    if (pidfile) {
+        unlink(pidfile);
+    }
+    g_critical(""failed to daemonize"");
+    exit(EXIT_FAILURE);
+#endif
+}
+"
+177968_CVE-2017-9374,qemu,Not_Fixing," static void usb_ehci_pci_exit(PCIDevice *dev)
+ {
+     EHCIPCIState *i = PCI_EHCI(dev);
+static void usb_ehci_pci_reset(DeviceState *dev)
+{
+    PCIDevice *pci_dev = PCI_DEVICE(dev);
+    EHCIPCIState *i = PCI_EHCI(pci_dev);
+    EHCIState *s = &i->ehci;
+
+    ehci_reset(s);
+}
+
+static void usb_ehci_pci_write_config(PCIDevice *dev, uint32_t addr,
+                                      uint32_t val, int l)
+{
+    EHCIPCIState *i = PCI_EHCI(dev);
+    bool busmaster;
+
+    pci_default_write_config(dev, addr, val, l);
+
+    if (!range_covers_byte(addr, l, PCI_COMMAND)) {
+        return;
+    }
+    busmaster = pci_get_word(dev->config + PCI_COMMAND) & PCI_COMMAND_MASTER;
+    i->ehci.as = busmaster ? pci_get_address_space(dev) : &address_space_memory;
+}
+
+static Property ehci_pci_properties[] = {
+    DEFINE_PROP_UINT32(""maxframes"", EHCIPCIState, ehci.maxframes, 128),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static const VMStateDescription vmstate_ehci_pci = {
+    .name        = ""ehci"",
+    .version_id  = 2,
+    .minimum_version_id  = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_PCI_DEVICE(pcidev, EHCIPCIState),
+        VMSTATE_STRUCT(ehci, EHCIPCIState, 2, vmstate_ehci, EHCIState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static void ehci_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+
+    k->realize = usb_ehci_pci_realize;
+    k->exit = usb_ehci_pci_exit;
+    k->class_id = PCI_CLASS_SERIAL_USB;
+    k->config_write = usb_ehci_pci_write_config;
+    dc->vmsd = &vmstate_ehci_pci;
+    dc->props = ehci_pci_properties;
+    dc->reset = usb_ehci_pci_reset;
+}
+
+static const TypeInfo ehci_pci_type_info = {
+    .name = TYPE_PCI_EHCI,
+    .parent = TYPE_PCI_DEVICE,
+    .instance_size = sizeof(EHCIPCIState),
+    .instance_init = usb_ehci_pci_init,
+    .abstract = true,
+    .class_init = ehci_class_init,
+};
+
+static void ehci_data_class_init(ObjectClass *klass, void *data)
+     .parent = TYPE_PCI_DEVICE,
+     .instance_size = sizeof(EHCIPCIState),
+     .instance_init = usb_ehci_pci_init,
+     .abstract = true,
+     .class_init = ehci_class_init,
+ };
+"," static void usb_ehci_pci_exit(PCIDevice *dev)
+ {
+     EHCIPCIState *i = PCI_EHCI(dev);
+static void usb_ehci_pci_reset(DeviceState *dev)
+{
+    PCIDevice *pci_dev = PCI_DEVICE(dev);
+    EHCIPCIState *i = PCI_EHCI(pci_dev);
+    EHCIState *s = &i->ehci;
+
+    ehci_reset(s);
+}
+
+static void usb_ehci_pci_write_config(PCIDevice *dev, uint32_t addr,
+                                      uint32_t val, int l)
+{
+    EHCIPCIState *i = PCI_EHCI(dev);
+    bool busmaster;
+
+    pci_default_write_config(dev, addr, val, l);
+
+    if (!range_covers_byte(addr, l, PCI_COMMAND)) {
+        return;
+    }
+    busmaster = pci_get_word(dev->config + PCI_COMMAND) & PCI_COMMAND_MASTER;
+    i->ehci.as = busmaster ? pci_get_address_space(dev) : &address_space_memory;
+}
+
+static Property ehci_pci_properties[] = {
+    DEFINE_PROP_UINT32(""maxframes"", EHCIPCIState, ehci.maxframes, 128),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static const VMStateDescription vmstate_ehci_pci = {
+    .name        = ""ehci"",
+    .version_id  = 2,
+    .minimum_version_id  = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_PCI_DEVICE(pcidev, EHCIPCIState),
+        VMSTATE_STRUCT(ehci, EHCIPCIState, 2, vmstate_ehci, EHCIState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static void ehci_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+
+    k->realize = usb_ehci_pci_realize;
+    k->exit = usb_ehci_pci_exit;
+    k->class_id = PCI_CLASS_SERIAL_USB;
+    k->config_write = usb_ehci_pci_write_config;
+    dc->vmsd = &vmstate_ehci_pci;
+    dc->props = ehci_pci_properties;
+    dc->reset = usb_ehci_pci_reset;
+}
+
+static const TypeInfo ehci_pci_type_info = {
+    .name = TYPE_PCI_EHCI,
+    .parent = TYPE_PCI_DEVICE,
+    .instance_size = sizeof(EHCIPCIState),
+    .instance_init = usb_ehci_pci_init,
+    .abstract = true,
+    .class_init = ehci_class_init,
+};
+
+static void ehci_data_class_init(ObjectClass *klass, void *data)
+     .parent = TYPE_PCI_DEVICE,
+     .instance_size = sizeof(EHCIPCIState),
+     .instance_init = usb_ehci_pci_init,
+    .instance_finalize = usb_ehci_pci_finalize,
+     .abstract = true,
+     .class_init = ehci_class_init,
+ };
+"
+177971_CVE-2017-9310,qemu,Not_Fixing," e1000e_ring_empty(E1000ECore *core, const E1000E_RingInfo *r)
+ {
+    return core->mac[r->dh] == core->mac[r->dt];
+ }
+"," e1000e_ring_empty(E1000ECore *core, const E1000E_RingInfo *r)
+ {
+    return core->mac[r->dh] == core->mac[r->dt] ||
+                core->mac[r->dt] >= core->mac[r->dlen] / E1000_RING_DESC_LEN;
+ }
+"
+178012_CVE-2014-9718,qemu,Not_Fixing,"static int bmdma_prepare_buf(IDEDMA *dma, int is_write)
+ {
+     BMDMAState *bm = DO_UPCAST(BMDMAState, dma, dma);
+     IDEState *s = bmdma_active_if(bm);
+        uint32_t size;
+    } prd;
+","static int bmdma_prepare_buf(IDEDMA *dma, int is_write)
+/**
+ * Return the number of bytes successfully prepared.
+ * -1 on error.
+ */
+static int32_t bmdma_prepare_buf(IDEDMA *dma, int is_write)
+ {
+     BMDMAState *bm = DO_UPCAST(BMDMAState, dma, dma);
+     IDEState *s = bmdma_active_if(bm);
+        uint32_t size;
+    } prd;
+"
+178067_CVE-2016-9913,qemu,Not_Fixing,"int v9fs_device_realize_common(V9fsState *s, Error **errp)
+{
+    V9fsVirtioState *v = container_of(s, V9fsVirtioState, state);
+    int i, len;
+    struct stat stat;
+    FsDriverEntry *fse;
+    V9fsPath path;
+    int rc = 1;
+
+    /* initialize pdu allocator */
+    QLIST_INIT(&s->free_list);
+    QLIST_INIT(&s->active_list);
+    for (i = 0; i < (MAX_REQ - 1); i++) {
+        QLIST_INSERT_HEAD(&s->free_list, &v->pdus[i], next);
+        v->pdus[i].s = s;
+        v->pdus[i].idx = i;
+    }
+
+    v9fs_path_init(&path);
+
+    fse = get_fsdev_fsentry(s->fsconf.fsdev_id);
+
+    if (!fse) {
+        /* We don't have a fsdev identified by fsdev_id */
+        error_setg(errp, ""9pfs device couldn't find fsdev with the ""
+                   ""id = %s"",
+                   s->fsconf.fsdev_id ? s->fsconf.fsdev_id : ""NULL"");
+        goto out;
+    }
+
+    if (!s->fsconf.tag) {
+        /* we haven't specified a mount_tag */
+        error_setg(errp, ""fsdev with id %s needs mount_tag arguments"",
+                   s->fsconf.fsdev_id);
+        goto out;
+    }
+
+    s->ctx.export_flags = fse->export_flags;
+    s->ctx.fs_root = g_strdup(fse->path);
+    s->ctx.exops.get_st_gen = NULL;
+    len = strlen(s->fsconf.tag);
+    if (len > MAX_TAG_LEN - 1) {
+        error_setg(errp, ""mount tag '%s' (%d bytes) is longer than ""
+                   ""maximum (%d bytes)"", s->fsconf.tag, len, MAX_TAG_LEN - 1);
+        goto out;
+    }
+
+    s->tag = g_strdup(s->fsconf.tag);
+    s->ctx.uid = -1;
+
+    s->ops = fse->ops;
+
+    s->fid_list = NULL;
+    qemu_co_rwlock_init(&s->rename_lock);
+
+    if (s->ops->init(&s->ctx) < 0) {
+        error_setg(errp, ""9pfs Failed to initialize fs-driver with id:%s""
+                   "" and export path:%s"", s->fsconf.fsdev_id, s->ctx.fs_root);
+        goto out;
+    }
+
+    /*
+     * Check details of export path, We need to use fs driver
+     * call back to do that. Since we are in the init path, we don't
+     * use co-routines here.
+     */
+    if (s->ops->name_to_path(&s->ctx, NULL, ""/"", &path) < 0) {
+        error_setg(errp,
+                   ""error in converting name to path %s"", strerror(errno));
+        goto out;
+    }
+    if (s->ops->lstat(&s->ctx, &path, &stat)) {
+        error_setg(errp, ""share path %s does not exist"", fse->path);
+        goto out;
+    } else if (!S_ISDIR(stat.st_mode)) {
+        error_setg(errp, ""share path %s is not a directory"", fse->path);
+        goto out;
+    }
+    v9fs_path_free(&path);
+
+     rc = 0;
+ out:
+     if (rc) {
+        g_free(s->ctx.fs_root);
+         g_free(s->tag);
+         v9fs_path_free(&path);
+     }
+     return rc;
+}
+","int v9fs_device_realize_common(V9fsState *s, Error **errp)
+{
+    V9fsVirtioState *v = container_of(s, V9fsVirtioState, state);
+    int i, len;
+    struct stat stat;
+    FsDriverEntry *fse;
+    V9fsPath path;
+    int rc = 1;
+
+    /* initialize pdu allocator */
+    QLIST_INIT(&s->free_list);
+    QLIST_INIT(&s->active_list);
+    for (i = 0; i < (MAX_REQ - 1); i++) {
+        QLIST_INSERT_HEAD(&s->free_list, &v->pdus[i], next);
+        v->pdus[i].s = s;
+        v->pdus[i].idx = i;
+    }
+
+    v9fs_path_init(&path);
+
+    fse = get_fsdev_fsentry(s->fsconf.fsdev_id);
+
+    if (!fse) {
+        /* We don't have a fsdev identified by fsdev_id */
+        error_setg(errp, ""9pfs device couldn't find fsdev with the ""
+                   ""id = %s"",
+                   s->fsconf.fsdev_id ? s->fsconf.fsdev_id : ""NULL"");
+        goto out;
+    }
+
+    if (!s->fsconf.tag) {
+        /* we haven't specified a mount_tag */
+        error_setg(errp, ""fsdev with id %s needs mount_tag arguments"",
+                   s->fsconf.fsdev_id);
+        goto out;
+    }
+
+    s->ctx.export_flags = fse->export_flags;
+    s->ctx.fs_root = g_strdup(fse->path);
+    s->ctx.exops.get_st_gen = NULL;
+    len = strlen(s->fsconf.tag);
+    if (len > MAX_TAG_LEN - 1) {
+        error_setg(errp, ""mount tag '%s' (%d bytes) is longer than ""
+                   ""maximum (%d bytes)"", s->fsconf.tag, len, MAX_TAG_LEN - 1);
+        goto out;
+    }
+
+    s->tag = g_strdup(s->fsconf.tag);
+    s->ctx.uid = -1;
+
+    s->ops = fse->ops;
+
+    s->fid_list = NULL;
+    qemu_co_rwlock_init(&s->rename_lock);
+
+    if (s->ops->init(&s->ctx) < 0) {
+        error_setg(errp, ""9pfs Failed to initialize fs-driver with id:%s""
+                   "" and export path:%s"", s->fsconf.fsdev_id, s->ctx.fs_root);
+        goto out;
+    }
+
+    /*
+     * Check details of export path, We need to use fs driver
+     * call back to do that. Since we are in the init path, we don't
+     * use co-routines here.
+     */
+    if (s->ops->name_to_path(&s->ctx, NULL, ""/"", &path) < 0) {
+        error_setg(errp,
+                   ""error in converting name to path %s"", strerror(errno));
+        goto out;
+    }
+    if (s->ops->lstat(&s->ctx, &path, &stat)) {
+        error_setg(errp, ""share path %s does not exist"", fse->path);
+        goto out;
+    } else if (!S_ISDIR(stat.st_mode)) {
+        error_setg(errp, ""share path %s is not a directory"", fse->path);
+        goto out;
+    }
+    v9fs_path_free(&path);
+
+     rc = 0;
+ out:
+     if (rc) {
+         g_free(s->tag);
+        g_free(s->ctx.fs_root);
+         v9fs_path_free(&path);
+     }
+     return rc;
+}
+"
+178068_CVE-2016-9913,qemu,Not_Fixing," void v9fs_device_unrealize_common(V9fsState *s, Error **errp)
+ {
+    g_free(s->ctx.fs_root);
+     g_free(s->tag);
+ }
+"," void v9fs_device_unrealize_common(V9fsState *s, Error **errp)
+ {
+     g_free(s->tag);
+    g_free(s->ctx.fs_root);
+ }
+"
+178097_CVE-2016-7908,qemu,Not_Fixing,"static void mcf_fec_do_tx(mcf_fec_state *s)
+{
+    uint32_t addr;
+     uint32_t addr;
+     mcf_fec_bd bd;
+     int frame_size;
+    int len;
+     uint8_t frame[FEC_MAX_FRAME_SIZE];
+     uint8_t *ptr;
+ 
+    ptr = frame;
+     ptr = frame;
+     frame_size = 0;
+     addr = s->tx_descriptor;
+    while (1) {
+         mcf_fec_read_bd(&bd, addr);
+         DPRINTF(""tx_bd %x flags %04x len %d data %08x\n"",
+                 addr, bd.flags, bd.length, bd.data);
+            /* Run out of descriptors to transmit.  */
+            break;
+        }
+        len = bd.length;
+        if (frame_size + len > FEC_MAX_FRAME_SIZE) {
+            len = FEC_MAX_FRAME_SIZE - frame_size;
+            s->eir |= FEC_INT_BABT;
+        }
+        cpu_physical_memory_read(bd.data, ptr, len);
+        ptr += len;
+        frame_size += len;
+        if (bd.flags & FEC_BD_L) {
+            /* Last buffer in frame.  */
+            DPRINTF(""Sending packet\n"");
+            qemu_send_packet(qemu_get_queue(s->nic), frame, len);
+            ptr = frame;
+            frame_size = 0;
+            s->eir |= FEC_INT_TXF;
+        }
+        s->eir |= FEC_INT_TXB;
+        bd.flags &= ~FEC_BD_R;
+        /* Write back the modified descriptor.  */
+        mcf_fec_write_bd(&bd, addr);
+        /* Advance to the next descriptor.  */
+        if ((bd.flags & FEC_BD_W) != 0) {
+            addr = s->etdsr;
+        } else {
+            addr += 8;
+        }
+    }
+","static void mcf_fec_do_tx(mcf_fec_state *s)
+{
+    uint32_t addr;
+     uint32_t addr;
+     mcf_fec_bd bd;
+     int frame_size;
+    int len, descnt = 0;
+     uint8_t frame[FEC_MAX_FRAME_SIZE];
+     uint8_t *ptr;
+ 
+    ptr = frame;
+     ptr = frame;
+     frame_size = 0;
+     addr = s->tx_descriptor;
+    while (descnt++ < FEC_MAX_DESC) {
+         mcf_fec_read_bd(&bd, addr);
+         DPRINTF(""tx_bd %x flags %04x len %d data %08x\n"",
+                 addr, bd.flags, bd.length, bd.data);
+            /* Run out of descriptors to transmit.  */
+            break;
+        }
+        len = bd.length;
+        if (frame_size + len > FEC_MAX_FRAME_SIZE) {
+            len = FEC_MAX_FRAME_SIZE - frame_size;
+            s->eir |= FEC_INT_BABT;
+        }
+        cpu_physical_memory_read(bd.data, ptr, len);
+        ptr += len;
+        frame_size += len;
+        if (bd.flags & FEC_BD_L) {
+            /* Last buffer in frame.  */
+            DPRINTF(""Sending packet\n"");
+            qemu_send_packet(qemu_get_queue(s->nic), frame, len);
+            ptr = frame;
+            frame_size = 0;
+            s->eir |= FEC_INT_TXF;
+        }
+        s->eir |= FEC_INT_TXB;
+        bd.flags &= ~FEC_BD_R;
+        /* Write back the modified descriptor.  */
+        mcf_fec_write_bd(&bd, addr);
+        /* Advance to the next descriptor.  */
+        if ((bd.flags & FEC_BD_W) != 0) {
+            addr = s->etdsr;
+        } else {
+            addr += 8;
+        }
+    }
+"
+178105_CVE-2016-7161,qemu,Not_Fixing,"static ssize_t eth_rx(NetClientState *nc, const uint8_t *buf, size_t size)
+{
+    struct xlx_ethlite *s = qemu_get_nic_opaque(nc);
+    unsigned int rxbase = s->rxbuf * (0x800 / 4);
+
+    /* DA filter.  */
+    if (!(buf[0] & 0x80) && memcmp(&s->conf.macaddr.a[0], buf, 6))
+        return size;
+
+    if (s->regs[rxbase + R_RX_CTRL0] & CTRL_S) {
+        D(qemu_log(""ethlite lost packet %x\n"", s->regs[R_RX_CTRL0]));
+        return -1;
+     }
+ 
+     D(qemu_log(""%s %zd rxbase=%x\n"", __func__, size, rxbase));
+     memcpy(&s->regs[rxbase + R_RX_BUF0], buf, size);
+ 
+     s->regs[rxbase + R_RX_CTRL0] |= CTRL_S;
+    /* If c_rx_pingpong was set flip buffers.  */
+    s->rxbuf ^= s->c_rx_pingpong;
+    return size;
+}
+","static ssize_t eth_rx(NetClientState *nc, const uint8_t *buf, size_t size)
+{
+    struct xlx_ethlite *s = qemu_get_nic_opaque(nc);
+    unsigned int rxbase = s->rxbuf * (0x800 / 4);
+
+    /* DA filter.  */
+    if (!(buf[0] & 0x80) && memcmp(&s->conf.macaddr.a[0], buf, 6))
+        return size;
+
+    if (s->regs[rxbase + R_RX_CTRL0] & CTRL_S) {
+        D(qemu_log(""ethlite lost packet %x\n"", s->regs[R_RX_CTRL0]));
+        return -1;
+     }
+ 
+     D(qemu_log(""%s %zd rxbase=%x\n"", __func__, size, rxbase));
+    if (size > (R_MAX - R_RX_BUF0 - rxbase) * 4) {
+        D(qemu_log(""ethlite packet is too big, size=%x\n"", size));
+        return -1;
+    }
+     memcpy(&s->regs[rxbase + R_RX_BUF0], buf, size);
+ 
+     s->regs[rxbase + R_RX_CTRL0] |= CTRL_S;
+    /* If c_rx_pingpong was set flip buffers.  */
+    s->rxbuf ^= s->c_rx_pingpong;
+    return size;
+}
+"
+178106_CVE-2016-7157,qemu,Not_Fixing,"size_t mptsas_config_ioc_0(MPTSASState *s, uint8_t **data, int address)
+{
+    PCIDeviceClass *pcic = PCI_DEVICE_GET_CLASS(s);
+
+     return MPTSAS_CONFIG_PACK(0, MPI_CONFIG_PAGETYPE_IOC, 0x01,
+                               ""*l*lwwb*b*b*blww"",
+                               pcic->vendor_id, pcic->device_id, pcic->revision,
+                              pcic->subsystem_vendor_id,
+                               pcic->subsystem_id);
+ }
+","size_t mptsas_config_ioc_0(MPTSASState *s, uint8_t **data, int address)
+{
+    PCIDeviceClass *pcic = PCI_DEVICE_GET_CLASS(s);
+
+     return MPTSAS_CONFIG_PACK(0, MPI_CONFIG_PAGETYPE_IOC, 0x01,
+                               ""*l*lwwb*b*b*blww"",
+                               pcic->vendor_id, pcic->device_id, pcic->revision,
+                              pcic->class_id, pcic->subsystem_vendor_id,
+                               pcic->subsystem_id);
+ }
+"
+178107_CVE-2016-7157,qemu,Not_Fixing,"size_t mptsas_config_manufacturing_1(MPTSASState *s, uint8_t **data, int address)
+ {
+     /* VPD - all zeros */
+     return MPTSAS_CONFIG_PACK(1, MPI_CONFIG_PAGETYPE_MANUFACTURING, 0x00,
+                              ""s256"");
+ }
+","size_t mptsas_config_manufacturing_1(MPTSASState *s, uint8_t **data, int address)
+ {
+     /* VPD - all zeros */
+     return MPTSAS_CONFIG_PACK(1, MPI_CONFIG_PAGETYPE_MANUFACTURING, 0x00,
+                              ""*s256"");
+ }
+"
+178119_CVE-2016-6888,qemu,Not_Fixing,"void net_tx_pkt_init(struct NetTxPkt **pkt, PCIDevice *pci_dev,
+    uint32_t max_frags, bool has_virt_hdr)
+{
+    struct NetTxPkt *p = g_malloc0(sizeof *p);
+ 
+     p->pci_dev = pci_dev;
+ 
+    p->vec = g_malloc((sizeof *p->vec) *
+        (max_frags + NET_TX_PKT_PL_START_FRAG));
+ 
+    p->raw = g_malloc((sizeof *p->raw) * max_frags);
+ 
+     p->max_payload_frags = max_frags;
+     p->max_raw_frags = max_frags;
+    p->max_raw_frags = max_frags;
+    p->has_virt_hdr = has_virt_hdr;
+    p->vec[NET_TX_PKT_VHDR_FRAG].iov_base = &p->virt_hdr;
+    p->vec[NET_TX_PKT_VHDR_FRAG].iov_len =
+        p->has_virt_hdr ? sizeof p->virt_hdr : 0;
+    p->vec[NET_TX_PKT_L2HDR_FRAG].iov_base = &p->l2_hdr;
+    p->vec[NET_TX_PKT_L3HDR_FRAG].iov_base = &p->l3_hdr;
+
+    *pkt = p;
+}
+","void net_tx_pkt_init(struct NetTxPkt **pkt, PCIDevice *pci_dev,
+    uint32_t max_frags, bool has_virt_hdr)
+{
+    struct NetTxPkt *p = g_malloc0(sizeof *p);
+ 
+     p->pci_dev = pci_dev;
+ 
+    p->vec = g_new(struct iovec, max_frags + NET_TX_PKT_PL_START_FRAG);
+ 
+    p->raw = g_new(struct iovec, max_frags);
+ 
+     p->max_payload_frags = max_frags;
+     p->max_raw_frags = max_frags;
+    p->max_raw_frags = max_frags;
+    p->has_virt_hdr = has_virt_hdr;
+    p->vec[NET_TX_PKT_VHDR_FRAG].iov_base = &p->virt_hdr;
+    p->vec[NET_TX_PKT_VHDR_FRAG].iov_len =
+        p->has_virt_hdr ? sizeof p->virt_hdr : 0;
+    p->vec[NET_TX_PKT_L2HDR_FRAG].iov_base = &p->l2_hdr;
+    p->vec[NET_TX_PKT_L3HDR_FRAG].iov_base = &p->l3_hdr;
+
+    *pkt = p;
+}
+"
+178120_CVE-2016-6836,qemu,Not_Fixing,"static void vmxnet3_complete_packet(VMXNET3State *s, int qidx, uint32_t tx_ridx)
+{
+    struct Vmxnet3_TxCompDesc txcq_descr;
+    PCIDevice *d = PCI_DEVICE(s);
+ 
+     VMXNET3_RING_DUMP(VMW_RIPRN, ""TXC"", qidx, &s->txq_descr[qidx].comp_ring);
+ 
+     txcq_descr.txdIdx = tx_ridx;
+     txcq_descr.gen = vmxnet3_ring_curr_gen(&s->txq_descr[qidx].comp_ring);
+
+    /* Flush changes in TX descriptor before changing the counter value */
+    smp_wmb();
+
+    vmxnet3_inc_tx_completion_counter(s, qidx);
+    vmxnet3_trigger_interrupt(s, s->txq_descr[qidx].intr_idx);
+}
+","static void vmxnet3_complete_packet(VMXNET3State *s, int qidx, uint32_t tx_ridx)
+{
+    struct Vmxnet3_TxCompDesc txcq_descr;
+    PCIDevice *d = PCI_DEVICE(s);
+ 
+     VMXNET3_RING_DUMP(VMW_RIPRN, ""TXC"", qidx, &s->txq_descr[qidx].comp_ring);
+ 
+    memset(&txcq_descr, 0, sizeof(txcq_descr));
+     txcq_descr.txdIdx = tx_ridx;
+     txcq_descr.gen = vmxnet3_ring_curr_gen(&s->txq_descr[qidx].comp_ring);
+
+    /* Flush changes in TX descriptor before changing the counter value */
+    smp_wmb();
+
+    vmxnet3_inc_tx_completion_counter(s, qidx);
+    vmxnet3_trigger_interrupt(s, s->txq_descr[qidx].intr_idx);
+}
+"
+178122_CVE-2016-6835,qemu,Not_Fixing,"static bool vmxnet_tx_pkt_parse_headers(struct VmxnetTxPkt *pkt)
+{
+    struct iovec *l2_hdr, *l3_hdr;
+    size_t bytes_read;
+    size_t full_ip6hdr_len;
+    uint16_t l3_proto;
+
+    assert(pkt);
+
+    l2_hdr = &pkt->vec[VMXNET_TX_PKT_L2HDR_FRAG];
+    l3_hdr = &pkt->vec[VMXNET_TX_PKT_L3HDR_FRAG];
+
+    bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, 0, l2_hdr->iov_base,
+                            ETH_MAX_L2_HDR_LEN);
+    if (bytes_read < sizeof(struct eth_header)) {
+        l2_hdr->iov_len = 0;
+        return false;
+    }
+
+    l2_hdr->iov_len = sizeof(struct eth_header);
+    switch (be16_to_cpu(PKT_GET_ETH_HDR(l2_hdr->iov_base)->h_proto)) {
+    case ETH_P_VLAN:
+        l2_hdr->iov_len += sizeof(struct vlan_header);
+        break;
+    case ETH_P_DVLAN:
+        l2_hdr->iov_len += 2 * sizeof(struct vlan_header);
+        break;
+    }
+
+    if (bytes_read < l2_hdr->iov_len) {
+        l2_hdr->iov_len = 0;
+        return false;
+    }
+
+    l3_proto = eth_get_l3_proto(l2_hdr->iov_base, l2_hdr->iov_len);
+
+    switch (l3_proto) {
+    case ETH_P_IP:
+        l3_hdr->iov_base = g_malloc(ETH_MAX_IP4_HDR_LEN);
+
+        bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                                l3_hdr->iov_base, sizeof(struct ip_header));
+
+        if (bytes_read < sizeof(struct ip_header)) {
+            l3_hdr->iov_len = 0;
+            return false;
+         }
+ 
+         l3_hdr->iov_len = IP_HDR_GET_LEN(l3_hdr->iov_base);
+         pkt->l4proto = ((struct ip_header *) l3_hdr->iov_base)->ip_p;
+ 
+         /* copy optional IPv4 header data */
+            l3_hdr->iov_len = 0;
+            return false;
+        }
+        break;
+
+    case ETH_P_IPV6:
+        if (!eth_parse_ipv6_hdr(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                               &pkt->l4proto, &full_ip6hdr_len)) {
+            l3_hdr->iov_len = 0;
+            return false;
+        }
+
+        l3_hdr->iov_base = g_malloc(full_ip6hdr_len);
+
+        bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                                l3_hdr->iov_base, full_ip6hdr_len);
+
+        if (bytes_read < full_ip6hdr_len) {
+            l3_hdr->iov_len = 0;
+            return false;
+        } else {
+            l3_hdr->iov_len = full_ip6hdr_len;
+        }
+        break;
+
+    default:
+        l3_hdr->iov_len = 0;
+        break;
+    }
+","static bool vmxnet_tx_pkt_parse_headers(struct VmxnetTxPkt *pkt)
+{
+    struct iovec *l2_hdr, *l3_hdr;
+    size_t bytes_read;
+    size_t full_ip6hdr_len;
+    uint16_t l3_proto;
+
+    assert(pkt);
+
+    l2_hdr = &pkt->vec[VMXNET_TX_PKT_L2HDR_FRAG];
+    l3_hdr = &pkt->vec[VMXNET_TX_PKT_L3HDR_FRAG];
+
+    bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, 0, l2_hdr->iov_base,
+                            ETH_MAX_L2_HDR_LEN);
+    if (bytes_read < sizeof(struct eth_header)) {
+        l2_hdr->iov_len = 0;
+        return false;
+    }
+
+    l2_hdr->iov_len = sizeof(struct eth_header);
+    switch (be16_to_cpu(PKT_GET_ETH_HDR(l2_hdr->iov_base)->h_proto)) {
+    case ETH_P_VLAN:
+        l2_hdr->iov_len += sizeof(struct vlan_header);
+        break;
+    case ETH_P_DVLAN:
+        l2_hdr->iov_len += 2 * sizeof(struct vlan_header);
+        break;
+    }
+
+    if (bytes_read < l2_hdr->iov_len) {
+        l2_hdr->iov_len = 0;
+        return false;
+    }
+
+    l3_proto = eth_get_l3_proto(l2_hdr->iov_base, l2_hdr->iov_len);
+
+    switch (l3_proto) {
+    case ETH_P_IP:
+        l3_hdr->iov_base = g_malloc(ETH_MAX_IP4_HDR_LEN);
+
+        bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                                l3_hdr->iov_base, sizeof(struct ip_header));
+
+        if (bytes_read < sizeof(struct ip_header)) {
+            l3_hdr->iov_len = 0;
+            return false;
+         }
+ 
+         l3_hdr->iov_len = IP_HDR_GET_LEN(l3_hdr->iov_base);
+        if(l3_hdr->iov_len < sizeof(struct ip_header))
+        {
+            l3_hdr->iov_len = 0;
+            return false;
+        }
+         pkt->l4proto = ((struct ip_header *) l3_hdr->iov_base)->ip_p;
+ 
+         /* copy optional IPv4 header data */
+            l3_hdr->iov_len = 0;
+            return false;
+        }
+        break;
+
+    case ETH_P_IPV6:
+        if (!eth_parse_ipv6_hdr(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                               &pkt->l4proto, &full_ip6hdr_len)) {
+            l3_hdr->iov_len = 0;
+            return false;
+        }
+
+        l3_hdr->iov_base = g_malloc(full_ip6hdr_len);
+
+        bytes_read = iov_to_buf(pkt->raw, pkt->raw_frags, l2_hdr->iov_len,
+                                l3_hdr->iov_base, full_ip6hdr_len);
+
+        if (bytes_read < full_ip6hdr_len) {
+            l3_hdr->iov_len = 0;
+            return false;
+        } else {
+            l3_hdr->iov_len = full_ip6hdr_len;
+        }
+        break;
+
+    default:
+        l3_hdr->iov_len = 0;
+        break;
+    }
+"
+178133_CVE-2016-6351,qemu,Not_Fixing,"static void esp_do_dma(ESPState *s)
+{
+    uint32_t len;
+    int to_device;
+
+     len = s->dma_left;
+     if (s->do_cmd) {
+         trace_esp_do_dma(s->cmdlen, len);
+         s->dma_memory_read(s->dma_opaque, &s->cmdbuf[s->cmdlen], len);
+         return;
+     }
+        return;
+    }
+","static void esp_do_dma(ESPState *s)
+{
+    uint32_t len;
+    int to_device;
+
+     len = s->dma_left;
+     if (s->do_cmd) {
+         trace_esp_do_dma(s->cmdlen, len);
+        assert (s->cmdlen <= sizeof(s->cmdbuf) &&
+                len <= sizeof(s->cmdbuf) - s->cmdlen);
+         s->dma_memory_read(s->dma_opaque, &s->cmdbuf[s->cmdlen], len);
+         return;
+     }
+        return;
+    }
+"
+178247_CVE-2016-4037,qemu,Not_Fixing," static void ehci_advance_state(EHCIState *ehci, int async)
+ {
+     EHCIQueue *q = NULL;
+     int again;
+ 
+     do {
+        case EST_WAITLISTHEAD:
+            again = ehci_state_waitlisthead(ehci, async);
+            break;
+
+        case EST_FETCHENTRY:
+            again = ehci_state_fetchentry(ehci, async);
+            break;
+
+        case EST_FETCHQH:
+            q = ehci_state_fetchqh(ehci, async);
+            if (q != NULL) {
+                assert(q->async == async);
+                again = 1;
+            } else {
+                again = 0;
+            }
+            break;
+
+ 
+         case EST_FETCHITD:
+             again = ehci_state_fetchitd(ehci, async);
+             break;
+ 
+         case EST_FETCHSITD:
+             again = ehci_state_fetchsitd(ehci, async);
+             break;
+ 
+         case EST_ADVANCEQUEUE:
+
+        case EST_FETCHQTD:
+            assert(q != NULL);
+            again = ehci_state_fetchqtd(q);
+            break;
+
+        case EST_HORIZONTALQH:
+            assert(q != NULL);
+            again = ehci_state_horizqh(q);
+            break;
+
+        case EST_EXECUTE:
+            assert(q != NULL);
+            again = ehci_state_execute(q);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            break;
+
+        case EST_EXECUTING:
+            assert(q != NULL);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            again = ehci_state_executing(q);
+            break;
+
+        case EST_WRITEBACK:
+            assert(q != NULL);
+            again = ehci_state_writeback(q);
+            if (!async) {
+                ehci->periodic_sched_active = PERIODIC_ACTIVE;
+            }
+            break;
+
+        default:
+            fprintf(stderr, ""Bad state!\n"");
+            again = -1;
+            g_assert_not_reached();
+            break;
+        }
+
+             break;
+         }
+"," static void ehci_advance_state(EHCIState *ehci, int async)
+ {
+     EHCIQueue *q = NULL;
+    int itd_count = 0;
+     int again;
+ 
+     do {
+        case EST_WAITLISTHEAD:
+            again = ehci_state_waitlisthead(ehci, async);
+            break;
+
+        case EST_FETCHENTRY:
+            again = ehci_state_fetchentry(ehci, async);
+            break;
+
+        case EST_FETCHQH:
+            q = ehci_state_fetchqh(ehci, async);
+            if (q != NULL) {
+                assert(q->async == async);
+                again = 1;
+            } else {
+                again = 0;
+            }
+            break;
+
+ 
+         case EST_FETCHITD:
+             again = ehci_state_fetchitd(ehci, async);
+            itd_count++;
+             break;
+ 
+         case EST_FETCHSITD:
+             again = ehci_state_fetchsitd(ehci, async);
+            itd_count++;
+             break;
+ 
+         case EST_ADVANCEQUEUE:
+
+        case EST_FETCHQTD:
+            assert(q != NULL);
+            again = ehci_state_fetchqtd(q);
+            break;
+
+        case EST_HORIZONTALQH:
+            assert(q != NULL);
+            again = ehci_state_horizqh(q);
+            break;
+
+        case EST_EXECUTE:
+            assert(q != NULL);
+            again = ehci_state_execute(q);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            break;
+
+        case EST_EXECUTING:
+            assert(q != NULL);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            again = ehci_state_executing(q);
+            break;
+
+        case EST_WRITEBACK:
+            assert(q != NULL);
+            again = ehci_state_writeback(q);
+            if (!async) {
+                ehci->periodic_sched_active = PERIODIC_ACTIVE;
+            }
+            break;
+
+        default:
+            fprintf(stderr, ""Bad state!\n"");
+            again = -1;
+            g_assert_not_reached();
+            break;
+        }
+
+             break;
+         }
+"
+178248_CVE-2016-4020,qemu,Not_Fixing,"static void patch_instruction(VAPICROMState *s, X86CPU *cpu, target_ulong ip)
+{
+    CPUState *cs = CPU(cpu);
+     CPUX86State *env = &cpu->env;
+     VAPICHandlers *handlers;
+     uint8_t opcode[2];
+    uint32_t imm32;
+     target_ulong current_pc = 0;
+     target_ulong current_cs_base = 0;
+     uint32_t current_flags = 0;
+
+    if (smp_cpus == 1) {
+        handlers = &s->rom_state.up;
+    } else {
+        handlers = &s->rom_state.mp;
+    }
+
+    if (!kvm_enabled()) {
+        cpu_get_tb_cpu_state(env, &current_pc, &current_cs_base,
+                             &current_flags);
+    }
+
+    pause_all_vcpus();
+
+    cpu_memory_rw_debug(cs, ip, opcode, sizeof(opcode), 0);
+
+    switch (opcode[0]) {
+    case 0x89: /* mov r32 to r/m32 */
+        patch_byte(cpu, ip, 0x50 + modrm_reg(opcode[1]));  /* push reg */
+        patch_call(s, cpu, ip + 1, handlers->set_tpr);
+        break;
+    case 0x8b: /* mov r/m32 to r32 */
+        patch_byte(cpu, ip, 0x90);
+        patch_call(s, cpu, ip + 1, handlers->get_tpr[modrm_reg(opcode[1])]);
+        break;
+    case 0xa1: /* mov abs to eax */
+        patch_call(s, cpu, ip, handlers->get_tpr[0]);
+        break;
+    case 0xa3: /* mov eax to abs */
+        patch_call(s, cpu, ip, handlers->set_tpr_eax);
+        break;
+    case 0xc7: /* mov imm32, r/m32 (c7/0) */
+        patch_byte(cpu, ip, 0x68);  /* push imm32 */
+        cpu_memory_rw_debug(cs, ip + 6, (void *)&imm32, sizeof(imm32), 0);
+        cpu_memory_rw_debug(cs, ip + 1, (void *)&imm32, sizeof(imm32), 1);
+        patch_call(s, cpu, ip + 5, handlers->set_tpr);
+        break;
+    case 0xff: /* push r/m32 */
+        patch_byte(cpu, ip, 0x50); /* push eax */
+        patch_call(s, cpu, ip + 1, handlers->get_tpr_stack);
+        break;
+    default:
+        abort();
+    }
+
+    resume_all_vcpus();
+
+    if (!kvm_enabled()) {
+        tb_gen_code(cs, current_pc, current_cs_base, current_flags, 1);
+        cpu_resume_from_signal(cs, NULL);
+    }
+}
+","static void patch_instruction(VAPICROMState *s, X86CPU *cpu, target_ulong ip)
+{
+    CPUState *cs = CPU(cpu);
+     CPUX86State *env = &cpu->env;
+     VAPICHandlers *handlers;
+     uint8_t opcode[2];
+    uint32_t imm32 = 0;
+     target_ulong current_pc = 0;
+     target_ulong current_cs_base = 0;
+     uint32_t current_flags = 0;
+
+    if (smp_cpus == 1) {
+        handlers = &s->rom_state.up;
+    } else {
+        handlers = &s->rom_state.mp;
+    }
+
+    if (!kvm_enabled()) {
+        cpu_get_tb_cpu_state(env, &current_pc, &current_cs_base,
+                             &current_flags);
+    }
+
+    pause_all_vcpus();
+
+    cpu_memory_rw_debug(cs, ip, opcode, sizeof(opcode), 0);
+
+    switch (opcode[0]) {
+    case 0x89: /* mov r32 to r/m32 */
+        patch_byte(cpu, ip, 0x50 + modrm_reg(opcode[1]));  /* push reg */
+        patch_call(s, cpu, ip + 1, handlers->set_tpr);
+        break;
+    case 0x8b: /* mov r/m32 to r32 */
+        patch_byte(cpu, ip, 0x90);
+        patch_call(s, cpu, ip + 1, handlers->get_tpr[modrm_reg(opcode[1])]);
+        break;
+    case 0xa1: /* mov abs to eax */
+        patch_call(s, cpu, ip, handlers->get_tpr[0]);
+        break;
+    case 0xa3: /* mov eax to abs */
+        patch_call(s, cpu, ip, handlers->set_tpr_eax);
+        break;
+    case 0xc7: /* mov imm32, r/m32 (c7/0) */
+        patch_byte(cpu, ip, 0x68);  /* push imm32 */
+        cpu_memory_rw_debug(cs, ip + 6, (void *)&imm32, sizeof(imm32), 0);
+        cpu_memory_rw_debug(cs, ip + 1, (void *)&imm32, sizeof(imm32), 1);
+        patch_call(s, cpu, ip + 5, handlers->set_tpr);
+        break;
+    case 0xff: /* push r/m32 */
+        patch_byte(cpu, ip, 0x50); /* push eax */
+        patch_call(s, cpu, ip + 1, handlers->get_tpr_stack);
+        break;
+    default:
+        abort();
+    }
+
+    resume_all_vcpus();
+
+    if (!kvm_enabled()) {
+        tb_gen_code(cs, current_pc, current_cs_base, current_flags, 1);
+        cpu_resume_from_signal(cs, NULL);
+    }
+}
+"
+178250_CVE-2016-4001,qemu,Not_Fixing,"static ssize_t stellaris_enet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
+{
+    stellaris_enet_state *s = qemu_get_nic_opaque(nc);
+    int n;
+    uint8_t *p;
+    uint32_t crc;
+
+    if ((s->rctl & SE_RCTL_RXEN) == 0)
+        return -1;
+    if (s->np >= 31) {
+        return 0;
+    }
+
+    DPRINTF(""Received packet len=%zu\n"", size);
+     n = s->next_packet + s->np;
+     if (n >= 31)
+         n -= 31;
+    s->np++;
+ 
+     s->rx[n].len = size + 6;
+     p = s->rx[n].data;
+     *(p++) = (size + 6);
+        memset(p, 0, (6 - size) & 3);
+    }
+","static ssize_t stellaris_enet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
+{
+    stellaris_enet_state *s = qemu_get_nic_opaque(nc);
+    int n;
+    uint8_t *p;
+    uint32_t crc;
+
+    if ((s->rctl & SE_RCTL_RXEN) == 0)
+        return -1;
+    if (s->np >= 31) {
+        return 0;
+    }
+
+    DPRINTF(""Received packet len=%zu\n"", size);
+     n = s->next_packet + s->np;
+     if (n >= 31)
+         n -= 31;
+ 
+    if (size >= sizeof(s->rx[n].data) - 6) {
+        /* If the packet won't fit into the
+         * emulated 2K RAM, this is reported
+         * as a FIFO overrun error.
+         */
+        s->ris |= SE_INT_FOV;
+        stellaris_enet_update(s);
+        return -1;
+    }
+
+    s->np++;
+     s->rx[n].len = size + 6;
+     p = s->rx[n].data;
+     *(p++) = (size + 6);
+        memset(p, 0, (6 - size) & 3);
+    }
+"
+178322_CVE-2014-3615,qemu,Not_Fixing,"static int interface_get_command(QXLInstance *sin, struct QXLCommandExt *ext)
+{
+    SimpleSpiceDisplay *ssd = container_of(sin, SimpleSpiceDisplay, qxl);
+     info->num_memslots = NUM_MEMSLOTS;
+     info->num_memslots_groups = NUM_MEMSLOTS_GROUPS;
+     info->internal_groupslot_id = 0;
+    info->qxl_ram_size = ssd->bufsize;
+     info->n_surfaces = ssd->num_surfaces;
+ }
+","static int interface_get_command(QXLInstance *sin, struct QXLCommandExt *ext)
+{
+    SimpleSpiceDisplay *ssd = container_of(sin, SimpleSpiceDisplay, qxl);
+     info->num_memslots = NUM_MEMSLOTS;
+     info->num_memslots_groups = NUM_MEMSLOTS_GROUPS;
+     info->internal_groupslot_id = 0;
+    info->qxl_ram_size = 16 * 1024 * 1024;
+     info->n_surfaces = ssd->num_surfaces;
+ }
+"
+178352_CVE-2016-2858,qemu,Not_Fixing,"static void rng_egd_request_entropy(RngBackend *b, size_t size,
+                                    EntropyReceiveFunc *receive_entropy,
+                                    void *opaque)
+ {
+     RngEgd *s = RNG_EGD(b);
+    RngRequest *req;
+    req = g_malloc(sizeof(*req));
+    req->offset = 0;
+    req->size = size;
+    req->receive_entropy = receive_entropy;
+    req->opaque = opaque;
+    req->data = g_malloc(req->size);
+ 
+     while (size > 0) {
+         uint8_t header[2];
+    req = g_malloc(sizeof(*req));
+
+    req->offset = 0;
+    req->size = size;
+    req->receive_entropy = receive_entropy;
+    req->opaque = opaque;
+    req->data = g_malloc(req->size);
+ 
+         size -= len;
+     }
+    s->parent.requests = g_slist_append(s->parent.requests, req);
+ }
+","static void rng_egd_request_entropy(RngBackend *b, size_t size,
+static void rng_egd_request_entropy(RngBackend *b, RngRequest *req)
+ {
+     RngEgd *s = RNG_EGD(b);
+    size_t size = req->size;
+ 
+     while (size > 0) {
+         uint8_t header[2];
+    req = g_malloc(sizeof(*req));
+
+    req->offset = 0;
+    req->size = size;
+    req->receive_entropy = receive_entropy;
+    req->opaque = opaque;
+    req->data = g_malloc(req->size);
+ 
+         size -= len;
+     }
+ }
+"
+178353_CVE-2016-2858,qemu,Not_Fixing,"void rng_backend_request_entropy(RngBackend *s, size_t size,
+                                 EntropyReceiveFunc *receive_entropy,
+                                  void *opaque)
+ {
+     RngBackendClass *k = RNG_BACKEND_GET_CLASS(s);
+ 
+     if (k->request_entropy) {
+        k->request_entropy(s, size, receive_entropy, opaque);
+     }
+ }
+","void rng_backend_request_entropy(RngBackend *s, size_t size,
+                                 EntropyReceiveFunc *receive_entropy,
+                                  void *opaque)
+ {
+     RngBackendClass *k = RNG_BACKEND_GET_CLASS(s);
+    RngRequest *req;
+ 
+     if (k->request_entropy) {
+        req = g_malloc(sizeof(*req));
+
+        req->offset = 0;
+        req->size = size;
+        req->receive_entropy = receive_entropy;
+        req->opaque = opaque;
+        req->data = g_malloc(req->size);
+
+        k->request_entropy(s, req);
+
+        s->requests = g_slist_append(s->requests, req);
+     }
+ }
+"
+178534_CVE-2013-4150,qemu,Not_Fixing,"static int virtio_net_load(QEMUFile *f, void *opaque, int version_id)
+{
+    VirtIONet *n = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    int ret, i, link_down;
+
+    if (version_id < 2 || version_id > VIRTIO_NET_VM_VERSION)
+        return -EINVAL;
+
+    ret = virtio_load(vdev, f);
+    if (ret) {
+        return ret;
+    }
+
+    qemu_get_buffer(f, n->mac, ETH_ALEN);
+    n->vqs[0].tx_waiting = qemu_get_be32(f);
+
+    virtio_net_set_mrg_rx_bufs(n, qemu_get_be32(f));
+
+    if (version_id >= 3)
+        n->status = qemu_get_be16(f);
+
+    if (version_id >= 4) {
+        if (version_id < 8) {
+            n->promisc = qemu_get_be32(f);
+            n->allmulti = qemu_get_be32(f);
+        } else {
+            n->promisc = qemu_get_byte(f);
+            n->allmulti = qemu_get_byte(f);
+        }
+    }
+
+    if (version_id >= 5) {
+        n->mac_table.in_use = qemu_get_be32(f);
+        /* MAC_TABLE_ENTRIES may be different from the saved image */
+        if (n->mac_table.in_use <= MAC_TABLE_ENTRIES) {
+            qemu_get_buffer(f, n->mac_table.macs,
+                            n->mac_table.in_use * ETH_ALEN);
+        } else if (n->mac_table.in_use) {
+            uint8_t *buf = g_malloc0(n->mac_table.in_use);
+            qemu_get_buffer(f, buf, n->mac_table.in_use * ETH_ALEN);
+            g_free(buf);
+            n->mac_table.multi_overflow = n->mac_table.uni_overflow = 1;
+            n->mac_table.in_use = 0;
+        }
+    }
+ 
+    if (version_id >= 6)
+        qemu_get_buffer(f, (uint8_t *)n->vlans, MAX_VLAN >> 3);
+
+    if (version_id >= 7) {
+        if (qemu_get_be32(f) && !peer_has_vnet_hdr(n)) {
+            error_report(""virtio-net: saved image requires vnet_hdr=on"");
+            return -1;
+        }
+    }
+
+    if (version_id >= 9) {
+        n->mac_table.multi_overflow = qemu_get_byte(f);
+        n->mac_table.uni_overflow = qemu_get_byte(f);
+    }
+
+    if (version_id >= 10) {
+        n->alluni = qemu_get_byte(f);
+        n->nomulti = qemu_get_byte(f);
+        n->nouni = qemu_get_byte(f);
+        n->nobcast = qemu_get_byte(f);
+    }
+
+    if (version_id >= 11) {
+        if (qemu_get_byte(f) && !peer_has_ufo(n)) {
+            error_report(""virtio-net: saved image requires TUN_F_UFO support"");
+            return -1;
+        }
+    }
+
+    if (n->max_queues > 1) {
+        if (n->max_queues != qemu_get_be16(f)) {
+            error_report(""virtio-net: different max_queues "");
+            return -1;
+         }
+ 
+         n->curr_queues = qemu_get_be16(f);
+         for (i = 1; i < n->curr_queues; i++) {
+             n->vqs[i].tx_waiting = qemu_get_be32(f);
+         }
+        n->curr_guest_offloads = virtio_net_supported_guest_offloads(n);
+    }
+
+    if (peer_has_vnet_hdr(n)) {
+        virtio_net_apply_guest_offloads(n);
+    }
+
+    virtio_net_set_queues(n);
+
+    /* Find the first multicast entry in the saved MAC filter */
+    for (i = 0; i < n->mac_table.in_use; i++) {
+        if (n->mac_table.macs[i * ETH_ALEN] & 1) {
+            break;
+        }
+    }
+    n->mac_table.first_multi = i;
+
+    /* nc.link_down can't be migrated, so infer link_down according
+     * to link status bit in n->status */
+    link_down = (n->status & VIRTIO_NET_S_LINK_UP) == 0;
+    for (i = 0; i < n->max_queues; i++) {
+        qemu_get_subqueue(n->nic, i)->link_down = link_down;
+    }
+
+    return 0;
+}
+","static int virtio_net_load(QEMUFile *f, void *opaque, int version_id)
+{
+    VirtIONet *n = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    int ret, i, link_down;
+
+    if (version_id < 2 || version_id > VIRTIO_NET_VM_VERSION)
+        return -EINVAL;
+
+    ret = virtio_load(vdev, f);
+    if (ret) {
+        return ret;
+    }
+
+    qemu_get_buffer(f, n->mac, ETH_ALEN);
+    n->vqs[0].tx_waiting = qemu_get_be32(f);
+
+    virtio_net_set_mrg_rx_bufs(n, qemu_get_be32(f));
+
+    if (version_id >= 3)
+        n->status = qemu_get_be16(f);
+
+    if (version_id >= 4) {
+        if (version_id < 8) {
+            n->promisc = qemu_get_be32(f);
+            n->allmulti = qemu_get_be32(f);
+        } else {
+            n->promisc = qemu_get_byte(f);
+            n->allmulti = qemu_get_byte(f);
+        }
+    }
+
+    if (version_id >= 5) {
+        n->mac_table.in_use = qemu_get_be32(f);
+        /* MAC_TABLE_ENTRIES may be different from the saved image */
+        if (n->mac_table.in_use <= MAC_TABLE_ENTRIES) {
+            qemu_get_buffer(f, n->mac_table.macs,
+                            n->mac_table.in_use * ETH_ALEN);
+        } else if (n->mac_table.in_use) {
+            uint8_t *buf = g_malloc0(n->mac_table.in_use);
+            qemu_get_buffer(f, buf, n->mac_table.in_use * ETH_ALEN);
+            g_free(buf);
+            n->mac_table.multi_overflow = n->mac_table.uni_overflow = 1;
+            n->mac_table.in_use = 0;
+        }
+    }
+ 
+    if (version_id >= 6)
+        qemu_get_buffer(f, (uint8_t *)n->vlans, MAX_VLAN >> 3);
+
+    if (version_id >= 7) {
+        if (qemu_get_be32(f) && !peer_has_vnet_hdr(n)) {
+            error_report(""virtio-net: saved image requires vnet_hdr=on"");
+            return -1;
+        }
+    }
+
+    if (version_id >= 9) {
+        n->mac_table.multi_overflow = qemu_get_byte(f);
+        n->mac_table.uni_overflow = qemu_get_byte(f);
+    }
+
+    if (version_id >= 10) {
+        n->alluni = qemu_get_byte(f);
+        n->nomulti = qemu_get_byte(f);
+        n->nouni = qemu_get_byte(f);
+        n->nobcast = qemu_get_byte(f);
+    }
+
+    if (version_id >= 11) {
+        if (qemu_get_byte(f) && !peer_has_ufo(n)) {
+            error_report(""virtio-net: saved image requires TUN_F_UFO support"");
+            return -1;
+        }
+    }
+
+    if (n->max_queues > 1) {
+        if (n->max_queues != qemu_get_be16(f)) {
+            error_report(""virtio-net: different max_queues "");
+            return -1;
+         }
+ 
+         n->curr_queues = qemu_get_be16(f);
+        if (n->curr_queues > n->max_queues) {
+            error_report(""virtio-net: curr_queues %x > max_queues %x"",
+                         n->curr_queues, n->max_queues);
+            return -1;
+        }
+         for (i = 1; i < n->curr_queues; i++) {
+             n->vqs[i].tx_waiting = qemu_get_be32(f);
+         }
+        n->curr_guest_offloads = virtio_net_supported_guest_offloads(n);
+    }
+
+    if (peer_has_vnet_hdr(n)) {
+        virtio_net_apply_guest_offloads(n);
+    }
+
+    virtio_net_set_queues(n);
+
+    /* Find the first multicast entry in the saved MAC filter */
+    for (i = 0; i < n->mac_table.in_use; i++) {
+        if (n->mac_table.macs[i * ETH_ALEN] & 1) {
+            break;
+        }
+    }
+    n->mac_table.first_multi = i;
+
+    /* nc.link_down can't be migrated, so infer link_down according
+     * to link status bit in n->status */
+    link_down = (n->status & VIRTIO_NET_S_LINK_UP) == 0;
+    for (i = 0; i < n->max_queues; i++) {
+        qemu_get_subqueue(n->nic, i)->link_down = link_down;
+    }
+
+    return 0;
+}
+"
+178535_CVE-2013-4149,qemu,Not_Fixing,"static int virtio_net_load(QEMUFile *f, void *opaque, int version_id)
+{
+    VirtIONet *n = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    int ret, i, link_down;
+
+    if (version_id < 2 || version_id > VIRTIO_NET_VM_VERSION)
+        return -EINVAL;
+
+    ret = virtio_load(vdev, f);
+    if (ret) {
+        return ret;
+    }
+
+    qemu_get_buffer(f, n->mac, ETH_ALEN);
+    n->vqs[0].tx_waiting = qemu_get_be32(f);
+
+    virtio_net_set_mrg_rx_bufs(n, qemu_get_be32(f));
+
+    if (version_id >= 3)
+        n->status = qemu_get_be16(f);
+
+    if (version_id >= 4) {
+        if (version_id < 8) {
+            n->promisc = qemu_get_be32(f);
+            n->allmulti = qemu_get_be32(f);
+        } else {
+            n->promisc = qemu_get_byte(f);
+            n->allmulti = qemu_get_byte(f);
+        }
+    }
+
+    if (version_id >= 5) {
+        n->mac_table.in_use = qemu_get_be32(f);
+        /* MAC_TABLE_ENTRIES may be different from the saved image */
+         if (n->mac_table.in_use <= MAC_TABLE_ENTRIES) {
+             qemu_get_buffer(f, n->mac_table.macs,
+                             n->mac_table.in_use * ETH_ALEN);
+        } else if (n->mac_table.in_use) {
+            uint8_t *buf = g_malloc0(n->mac_table.in_use);
+            qemu_get_buffer(f, buf, n->mac_table.in_use * ETH_ALEN);
+            g_free(buf);
+             n->mac_table.multi_overflow = n->mac_table.uni_overflow = 1;
+             n->mac_table.in_use = 0;
+         }
+            error_report(""virtio-net: saved image requires vnet_hdr=on"");
+            return -1;
+        }
+    }
+","static int virtio_net_load(QEMUFile *f, void *opaque, int version_id)
+{
+    VirtIONet *n = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    int ret, i, link_down;
+
+    if (version_id < 2 || version_id > VIRTIO_NET_VM_VERSION)
+        return -EINVAL;
+
+    ret = virtio_load(vdev, f);
+    if (ret) {
+        return ret;
+    }
+
+    qemu_get_buffer(f, n->mac, ETH_ALEN);
+    n->vqs[0].tx_waiting = qemu_get_be32(f);
+
+    virtio_net_set_mrg_rx_bufs(n, qemu_get_be32(f));
+
+    if (version_id >= 3)
+        n->status = qemu_get_be16(f);
+
+    if (version_id >= 4) {
+        if (version_id < 8) {
+            n->promisc = qemu_get_be32(f);
+            n->allmulti = qemu_get_be32(f);
+        } else {
+            n->promisc = qemu_get_byte(f);
+            n->allmulti = qemu_get_byte(f);
+        }
+    }
+
+    if (version_id >= 5) {
+        n->mac_table.in_use = qemu_get_be32(f);
+        /* MAC_TABLE_ENTRIES may be different from the saved image */
+         if (n->mac_table.in_use <= MAC_TABLE_ENTRIES) {
+             qemu_get_buffer(f, n->mac_table.macs,
+                             n->mac_table.in_use * ETH_ALEN);
+        } else {
+            int64_t i;
+
+            /* Overflow detected - can happen if source has a larger MAC table.
+             * We simply set overflow flag so there's no need to maintain the
+             * table of addresses, discard them all.
+             * Note: 64 bit math to avoid integer overflow.
+             */
+            for (i = 0; i < (int64_t)n->mac_table.in_use * ETH_ALEN; ++i) {
+                qemu_get_byte(f);
+            }
+             n->mac_table.multi_overflow = n->mac_table.uni_overflow = 1;
+             n->mac_table.in_use = 0;
+         }
+            error_report(""virtio-net: saved image requires vnet_hdr=on"");
+            return -1;
+        }
+    }
+"
+178577_CVE-2014-0143,qemu,Not_Fixing," static int get_refcount(BlockDriverState *bs, int64_t cluster_index)
+ {
+     BDRVQcowState *s = bs->opaque;
+    int refcount_table_index, block_index;
+     int64_t refcount_block_offset;
+     int ret;
+     uint16_t *refcount_block;
+    uint16_t refcount;
+
+    refcount_table_index = cluster_index >> (s->cluster_bits - REFCOUNT_SHIFT);
+    if (refcount_table_index >= s->refcount_table_size)
+        return 0;
+    refcount_block_offset =
+        s->refcount_table[refcount_table_index] & REFT_OFFSET_MASK;
+    if (!refcount_block_offset)
+        return 0;
+
+    ret = qcow2_cache_get(bs, s->refcount_block_cache, refcount_block_offset,
+        (void**) &refcount_block);
+    if (ret < 0) {
+        return ret;
+    }
+
+    block_index = cluster_index &
+        ((1 << (s->cluster_bits - REFCOUNT_SHIFT)) - 1);
+    refcount = be16_to_cpu(refcount_block[block_index]);
+
+    ret = qcow2_cache_put(bs, s->refcount_block_cache,
+        (void**) &refcount_block);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return refcount;
+}
+"," static int get_refcount(BlockDriverState *bs, int64_t cluster_index)
+ {
+     BDRVQcowState *s = bs->opaque;
+    uint64_t refcount_table_index, block_index;
+     int64_t refcount_block_offset;
+     int ret;
+     uint16_t *refcount_block;
+    uint16_t refcount;
+
+    refcount_table_index = cluster_index >> (s->cluster_bits - REFCOUNT_SHIFT);
+    if (refcount_table_index >= s->refcount_table_size)
+        return 0;
+    refcount_block_offset =
+        s->refcount_table[refcount_table_index] & REFT_OFFSET_MASK;
+    if (!refcount_block_offset)
+        return 0;
+
+    ret = qcow2_cache_get(bs, s->refcount_block_cache, refcount_block_offset,
+        (void**) &refcount_block);
+    if (ret < 0) {
+        return ret;
+    }
+
+    block_index = cluster_index &
+        ((1 << (s->cluster_bits - REFCOUNT_SHIFT)) - 1);
+    refcount = be16_to_cpu(refcount_block[block_index]);
+
+    ret = qcow2_cache_put(bs, s->refcount_block_cache,
+        (void**) &refcount_block);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return refcount;
+}
+"
+178579_CVE-2014-0143,qemu,Not_Fixing,"static int qcow2_open(BlockDriverState *bs, QDict *options, int flags,
+                      Error **errp)
+{
+    BDRVQcowState *s = bs->opaque;
+    unsigned int len, i;
+    int ret = 0;
+    QCowHeader header;
+    QemuOpts *opts;
+    Error *local_err = NULL;
+    uint64_t ext_end;
+    uint64_t l1_vm_state_index;
+    const char *opt_overlap_check;
+    int overlap_check_template = 0;
+
+    ret = bdrv_pread(bs->file, 0, &header, sizeof(header));
+    if (ret < 0) {
+        error_setg_errno(errp, -ret, ""Could not read qcow2 header"");
+        goto fail;
+    }
+    be32_to_cpus(&header.magic);
+    be32_to_cpus(&header.version);
+    be64_to_cpus(&header.backing_file_offset);
+    be32_to_cpus(&header.backing_file_size);
+    be64_to_cpus(&header.size);
+    be32_to_cpus(&header.cluster_bits);
+    be32_to_cpus(&header.crypt_method);
+    be64_to_cpus(&header.l1_table_offset);
+    be32_to_cpus(&header.l1_size);
+    be64_to_cpus(&header.refcount_table_offset);
+    be32_to_cpus(&header.refcount_table_clusters);
+    be64_to_cpus(&header.snapshots_offset);
+    be32_to_cpus(&header.nb_snapshots);
+
+    if (header.magic != QCOW_MAGIC) {
+        error_setg(errp, ""Image is not in qcow2 format"");
+        ret = -EINVAL;
+        goto fail;
+    }
+    if (header.version < 2 || header.version > 3) {
+        report_unsupported(bs, errp, ""QCOW version %d"", header.version);
+        ret = -ENOTSUP;
+        goto fail;
+    }
+
+    s->qcow_version = header.version;
+
+    /* Initialise cluster size */
+    if (header.cluster_bits < MIN_CLUSTER_BITS ||
+        header.cluster_bits > MAX_CLUSTER_BITS) {
+        error_setg(errp, ""Unsupported cluster size: 2^%i"", header.cluster_bits);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->cluster_bits = header.cluster_bits;
+    s->cluster_size = 1 << s->cluster_bits;
+    s->cluster_sectors = 1 << (s->cluster_bits - 9);
+
+    /* Initialise version 3 header fields */
+    if (header.version == 2) {
+        header.incompatible_features    = 0;
+        header.compatible_features      = 0;
+        header.autoclear_features       = 0;
+        header.refcount_order           = 4;
+        header.header_length            = 72;
+    } else {
+        be64_to_cpus(&header.incompatible_features);
+        be64_to_cpus(&header.compatible_features);
+        be64_to_cpus(&header.autoclear_features);
+        be32_to_cpus(&header.refcount_order);
+        be32_to_cpus(&header.header_length);
+
+        if (header.header_length < 104) {
+            error_setg(errp, ""qcow2 header too short"");
+            ret = -EINVAL;
+            goto fail;
+        }
+    }
+
+    if (header.header_length > s->cluster_size) {
+        error_setg(errp, ""qcow2 header exceeds cluster size"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    if (header.header_length > sizeof(header)) {
+        s->unknown_header_fields_size = header.header_length - sizeof(header);
+        s->unknown_header_fields = g_malloc(s->unknown_header_fields_size);
+        ret = bdrv_pread(bs->file, sizeof(header), s->unknown_header_fields,
+                         s->unknown_header_fields_size);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read unknown qcow2 header ""
+                             ""fields"");
+            goto fail;
+        }
+    }
+
+    if (header.backing_file_offset > s->cluster_size) {
+        error_setg(errp, ""Invalid backing file offset"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    if (header.backing_file_offset) {
+        ext_end = header.backing_file_offset;
+    } else {
+        ext_end = 1 << header.cluster_bits;
+    }
+
+    /* Handle feature bits */
+    s->incompatible_features    = header.incompatible_features;
+    s->compatible_features      = header.compatible_features;
+    s->autoclear_features       = header.autoclear_features;
+
+    if (s->incompatible_features & ~QCOW2_INCOMPAT_MASK) {
+        void *feature_table = NULL;
+        qcow2_read_extensions(bs, header.header_length, ext_end,
+                              &feature_table, NULL);
+        report_unsupported_feature(bs, errp, feature_table,
+                                   s->incompatible_features &
+                                   ~QCOW2_INCOMPAT_MASK);
+        ret = -ENOTSUP;
+        g_free(feature_table);
+        goto fail;
+    }
+
+    if (s->incompatible_features & QCOW2_INCOMPAT_CORRUPT) {
+        /* Corrupt images may not be written to unless they are being repaired
+         */
+        if ((flags & BDRV_O_RDWR) && !(flags & BDRV_O_CHECK)) {
+            error_setg(errp, ""qcow2: Image is corrupt; cannot be opened ""
+                       ""read/write"");
+            ret = -EACCES;
+            goto fail;
+        }
+    }
+
+    /* Check support for various header values */
+    if (header.refcount_order != 4) {
+        report_unsupported(bs, errp, ""%d bit reference counts"",
+                           1 << header.refcount_order);
+        ret = -ENOTSUP;
+        goto fail;
+    }
+    s->refcount_order = header.refcount_order;
+
+    if (header.crypt_method > QCOW_CRYPT_AES) {
+        error_setg(errp, ""Unsupported encryption method: %i"",
+                   header.crypt_method);
+        ret = -EINVAL;
+        goto fail;
+    }
+    s->crypt_method_header = header.crypt_method;
+    if (s->crypt_method_header) {
+        bs->encrypted = 1;
+    }
+
+    s->l2_bits = s->cluster_bits - 3; /* L2 is always one cluster */
+    s->l2_size = 1 << s->l2_bits;
+    bs->total_sectors = header.size / 512;
+    s->csize_shift = (62 - (s->cluster_bits - 8));
+    s->csize_mask = (1 << (s->cluster_bits - 8)) - 1;
+    s->cluster_offset_mask = (1LL << s->csize_shift) - 1;
+
+    s->refcount_table_offset = header.refcount_table_offset;
+    s->refcount_table_size =
+        header.refcount_table_clusters << (s->cluster_bits - 3);
+
+    if (header.refcount_table_clusters > qcow2_max_refcount_clusters(s)) {
+        error_setg(errp, ""Reference count table too large"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, s->refcount_table_offset,
+                                s->refcount_table_size, sizeof(uint64_t));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid reference count table offset"");
+        goto fail;
+    }
+
+    /* Snapshot table offset/length */
+    if (header.nb_snapshots > QCOW_MAX_SNAPSHOTS) {
+        error_setg(errp, ""Too many snapshots"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, header.snapshots_offset,
+                                header.nb_snapshots,
+                                sizeof(QCowSnapshotHeader));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid snapshot table offset"");
+        goto fail;
+     }
+ 
+     /* read the level 1 table */
+    if (header.l1_size > 0x2000000) {
+        /* 32 MB L1 table is enough for 2 PB images at 64k cluster size
+         * (128 GB for 512 byte clusters, 2 EB for 2 MB clusters) */
+         error_setg(errp, ""Active L1 table too large"");
+         ret = -EFBIG;
+         goto fail;
+        ret = -EFBIG;
+        goto fail;
+    }
+    s->l1_size = header.l1_size;
+
+    l1_vm_state_index = size_to_l1(s, header.size);
+    if (l1_vm_state_index > INT_MAX) {
+        error_setg(errp, ""Image is too big"");
+        ret = -EFBIG;
+        goto fail;
+    }
+    s->l1_vm_state_index = l1_vm_state_index;
+
+    /* the L1 table must contain at least enough entries to put
+       header.size bytes */
+    if (s->l1_size < s->l1_vm_state_index) {
+        error_setg(errp, ""L1 table is too small"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, header.l1_table_offset,
+                                header.l1_size, sizeof(uint64_t));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid L1 table offset"");
+        goto fail;
+    }
+    s->l1_table_offset = header.l1_table_offset;
+
+
+    if (s->l1_size > 0) {
+        s->l1_table = g_malloc0(
+            align_offset(s->l1_size * sizeof(uint64_t), 512));
+        ret = bdrv_pread(bs->file, s->l1_table_offset, s->l1_table,
+                         s->l1_size * sizeof(uint64_t));
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read L1 table"");
+            goto fail;
+        }
+        for(i = 0;i < s->l1_size; i++) {
+            be64_to_cpus(&s->l1_table[i]);
+        }
+    }
+
+    /* alloc L2 table/refcount block cache */
+    s->l2_table_cache = qcow2_cache_create(bs, L2_CACHE_SIZE);
+    s->refcount_block_cache = qcow2_cache_create(bs, REFCOUNT_CACHE_SIZE);
+
+    s->cluster_cache = g_malloc(s->cluster_size);
+    /* one more sector for decompressed data alignment */
+    s->cluster_data = qemu_blockalign(bs, QCOW_MAX_CRYPT_CLUSTERS * s->cluster_size
+                                  + 512);
+    s->cluster_cache_offset = -1;
+    s->flags = flags;
+
+    ret = qcow2_refcount_init(bs);
+    if (ret != 0) {
+        error_setg_errno(errp, -ret, ""Could not initialize refcount handling"");
+        goto fail;
+    }
+
+    QLIST_INIT(&s->cluster_allocs);
+    QTAILQ_INIT(&s->discards);
+
+    /* read qcow2 extensions */
+    if (qcow2_read_extensions(bs, header.header_length, ext_end, NULL,
+        &local_err)) {
+        error_propagate(errp, local_err);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    /* read the backing file name */
+    if (header.backing_file_offset != 0) {
+        len = header.backing_file_size;
+        if (len > MIN(1023, s->cluster_size - header.backing_file_offset)) {
+            error_setg(errp, ""Backing file name too long"");
+            ret = -EINVAL;
+            goto fail;
+        }
+        ret = bdrv_pread(bs->file, header.backing_file_offset,
+                         bs->backing_file, len);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read backing file name"");
+            goto fail;
+        }
+        bs->backing_file[len] = '\0';
+    }
+
+    /* Internal snapshots */
+    s->snapshots_offset = header.snapshots_offset;
+    s->nb_snapshots = header.nb_snapshots;
+
+    ret = qcow2_read_snapshots(bs);
+    if (ret < 0) {
+        error_setg_errno(errp, -ret, ""Could not read snapshots"");
+        goto fail;
+    }
+
+    /* Clear unknown autoclear feature bits */
+    if (!bs->read_only && !(flags & BDRV_O_INCOMING) && s->autoclear_features) {
+        s->autoclear_features = 0;
+        ret = qcow2_update_header(bs);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not update qcow2 header"");
+            goto fail;
+        }
+    }
+
+    /* Initialise locks */
+    qemu_co_mutex_init(&s->lock);
+
+    /* Repair image if dirty */
+    if (!(flags & (BDRV_O_CHECK | BDRV_O_INCOMING)) && !bs->read_only &&
+        (s->incompatible_features & QCOW2_INCOMPAT_DIRTY)) {
+        BdrvCheckResult result = {0};
+
+        ret = qcow2_check(bs, &result, BDRV_FIX_ERRORS);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not repair dirty image"");
+            goto fail;
+        }
+    }
+
+    /* Enable lazy_refcounts according to image and command line options */
+    opts = qemu_opts_create(&qcow2_runtime_opts, NULL, 0, &error_abort);
+    qemu_opts_absorb_qdict(opts, options, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->use_lazy_refcounts = qemu_opt_get_bool(opts, QCOW2_OPT_LAZY_REFCOUNTS,
+        (s->compatible_features & QCOW2_COMPAT_LAZY_REFCOUNTS));
+
+    s->discard_passthrough[QCOW2_DISCARD_NEVER] = false;
+    s->discard_passthrough[QCOW2_DISCARD_ALWAYS] = true;
+    s->discard_passthrough[QCOW2_DISCARD_REQUEST] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_REQUEST,
+                          flags & BDRV_O_UNMAP);
+    s->discard_passthrough[QCOW2_DISCARD_SNAPSHOT] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_SNAPSHOT, true);
+    s->discard_passthrough[QCOW2_DISCARD_OTHER] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_OTHER, false);
+
+    opt_overlap_check = qemu_opt_get(opts, ""overlap-check"") ?: ""cached"";
+    if (!strcmp(opt_overlap_check, ""none"")) {
+        overlap_check_template = 0;
+    } else if (!strcmp(opt_overlap_check, ""constant"")) {
+        overlap_check_template = QCOW2_OL_CONSTANT;
+    } else if (!strcmp(opt_overlap_check, ""cached"")) {
+        overlap_check_template = QCOW2_OL_CACHED;
+    } else if (!strcmp(opt_overlap_check, ""all"")) {
+        overlap_check_template = QCOW2_OL_ALL;
+    } else {
+        error_setg(errp, ""Unsupported value '%s' for qcow2 option ""
+                   ""'overlap-check'. Allowed are either of the following: ""
+                   ""none, constant, cached, all"", opt_overlap_check);
+        qemu_opts_del(opts);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->overlap_check = 0;
+    for (i = 0; i < QCOW2_OL_MAX_BITNR; i++) {
+        /* overlap-check defines a template bitmask, but every flag may be
+         * overwritten through the associated boolean option */
+        s->overlap_check |=
+            qemu_opt_get_bool(opts, overlap_bool_option_names[i],
+                              overlap_check_template & (1 << i)) << i;
+    }
+
+    qemu_opts_del(opts);
+
+    if (s->use_lazy_refcounts && s->qcow_version < 3) {
+        error_setg(errp, ""Lazy refcounts require a qcow2 image with at least ""
+                   ""qemu 1.1 compatibility level"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+#ifdef DEBUG_ALLOC
+    {
+        BdrvCheckResult result = {0};
+        qcow2_check_refcounts(bs, &result, 0);
+    }
+#endif
+    return ret;
+
+ fail:
+    g_free(s->unknown_header_fields);
+    cleanup_unknown_header_ext(bs);
+    qcow2_free_snapshots(bs);
+    qcow2_refcount_close(bs);
+    g_free(s->l1_table);
+    /* else pre-write overlap checks in cache_destroy may crash */
+    s->l1_table = NULL;
+    if (s->l2_table_cache) {
+        qcow2_cache_destroy(bs, s->l2_table_cache);
+    }
+    if (s->refcount_block_cache) {
+        qcow2_cache_destroy(bs, s->refcount_block_cache);
+    }
+    g_free(s->cluster_cache);
+    qemu_vfree(s->cluster_data);
+    return ret;
+}
+","static int qcow2_open(BlockDriverState *bs, QDict *options, int flags,
+                      Error **errp)
+{
+    BDRVQcowState *s = bs->opaque;
+    unsigned int len, i;
+    int ret = 0;
+    QCowHeader header;
+    QemuOpts *opts;
+    Error *local_err = NULL;
+    uint64_t ext_end;
+    uint64_t l1_vm_state_index;
+    const char *opt_overlap_check;
+    int overlap_check_template = 0;
+
+    ret = bdrv_pread(bs->file, 0, &header, sizeof(header));
+    if (ret < 0) {
+        error_setg_errno(errp, -ret, ""Could not read qcow2 header"");
+        goto fail;
+    }
+    be32_to_cpus(&header.magic);
+    be32_to_cpus(&header.version);
+    be64_to_cpus(&header.backing_file_offset);
+    be32_to_cpus(&header.backing_file_size);
+    be64_to_cpus(&header.size);
+    be32_to_cpus(&header.cluster_bits);
+    be32_to_cpus(&header.crypt_method);
+    be64_to_cpus(&header.l1_table_offset);
+    be32_to_cpus(&header.l1_size);
+    be64_to_cpus(&header.refcount_table_offset);
+    be32_to_cpus(&header.refcount_table_clusters);
+    be64_to_cpus(&header.snapshots_offset);
+    be32_to_cpus(&header.nb_snapshots);
+
+    if (header.magic != QCOW_MAGIC) {
+        error_setg(errp, ""Image is not in qcow2 format"");
+        ret = -EINVAL;
+        goto fail;
+    }
+    if (header.version < 2 || header.version > 3) {
+        report_unsupported(bs, errp, ""QCOW version %d"", header.version);
+        ret = -ENOTSUP;
+        goto fail;
+    }
+
+    s->qcow_version = header.version;
+
+    /* Initialise cluster size */
+    if (header.cluster_bits < MIN_CLUSTER_BITS ||
+        header.cluster_bits > MAX_CLUSTER_BITS) {
+        error_setg(errp, ""Unsupported cluster size: 2^%i"", header.cluster_bits);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->cluster_bits = header.cluster_bits;
+    s->cluster_size = 1 << s->cluster_bits;
+    s->cluster_sectors = 1 << (s->cluster_bits - 9);
+
+    /* Initialise version 3 header fields */
+    if (header.version == 2) {
+        header.incompatible_features    = 0;
+        header.compatible_features      = 0;
+        header.autoclear_features       = 0;
+        header.refcount_order           = 4;
+        header.header_length            = 72;
+    } else {
+        be64_to_cpus(&header.incompatible_features);
+        be64_to_cpus(&header.compatible_features);
+        be64_to_cpus(&header.autoclear_features);
+        be32_to_cpus(&header.refcount_order);
+        be32_to_cpus(&header.header_length);
+
+        if (header.header_length < 104) {
+            error_setg(errp, ""qcow2 header too short"");
+            ret = -EINVAL;
+            goto fail;
+        }
+    }
+
+    if (header.header_length > s->cluster_size) {
+        error_setg(errp, ""qcow2 header exceeds cluster size"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    if (header.header_length > sizeof(header)) {
+        s->unknown_header_fields_size = header.header_length - sizeof(header);
+        s->unknown_header_fields = g_malloc(s->unknown_header_fields_size);
+        ret = bdrv_pread(bs->file, sizeof(header), s->unknown_header_fields,
+                         s->unknown_header_fields_size);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read unknown qcow2 header ""
+                             ""fields"");
+            goto fail;
+        }
+    }
+
+    if (header.backing_file_offset > s->cluster_size) {
+        error_setg(errp, ""Invalid backing file offset"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    if (header.backing_file_offset) {
+        ext_end = header.backing_file_offset;
+    } else {
+        ext_end = 1 << header.cluster_bits;
+    }
+
+    /* Handle feature bits */
+    s->incompatible_features    = header.incompatible_features;
+    s->compatible_features      = header.compatible_features;
+    s->autoclear_features       = header.autoclear_features;
+
+    if (s->incompatible_features & ~QCOW2_INCOMPAT_MASK) {
+        void *feature_table = NULL;
+        qcow2_read_extensions(bs, header.header_length, ext_end,
+                              &feature_table, NULL);
+        report_unsupported_feature(bs, errp, feature_table,
+                                   s->incompatible_features &
+                                   ~QCOW2_INCOMPAT_MASK);
+        ret = -ENOTSUP;
+        g_free(feature_table);
+        goto fail;
+    }
+
+    if (s->incompatible_features & QCOW2_INCOMPAT_CORRUPT) {
+        /* Corrupt images may not be written to unless they are being repaired
+         */
+        if ((flags & BDRV_O_RDWR) && !(flags & BDRV_O_CHECK)) {
+            error_setg(errp, ""qcow2: Image is corrupt; cannot be opened ""
+                       ""read/write"");
+            ret = -EACCES;
+            goto fail;
+        }
+    }
+
+    /* Check support for various header values */
+    if (header.refcount_order != 4) {
+        report_unsupported(bs, errp, ""%d bit reference counts"",
+                           1 << header.refcount_order);
+        ret = -ENOTSUP;
+        goto fail;
+    }
+    s->refcount_order = header.refcount_order;
+
+    if (header.crypt_method > QCOW_CRYPT_AES) {
+        error_setg(errp, ""Unsupported encryption method: %i"",
+                   header.crypt_method);
+        ret = -EINVAL;
+        goto fail;
+    }
+    s->crypt_method_header = header.crypt_method;
+    if (s->crypt_method_header) {
+        bs->encrypted = 1;
+    }
+
+    s->l2_bits = s->cluster_bits - 3; /* L2 is always one cluster */
+    s->l2_size = 1 << s->l2_bits;
+    bs->total_sectors = header.size / 512;
+    s->csize_shift = (62 - (s->cluster_bits - 8));
+    s->csize_mask = (1 << (s->cluster_bits - 8)) - 1;
+    s->cluster_offset_mask = (1LL << s->csize_shift) - 1;
+
+    s->refcount_table_offset = header.refcount_table_offset;
+    s->refcount_table_size =
+        header.refcount_table_clusters << (s->cluster_bits - 3);
+
+    if (header.refcount_table_clusters > qcow2_max_refcount_clusters(s)) {
+        error_setg(errp, ""Reference count table too large"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, s->refcount_table_offset,
+                                s->refcount_table_size, sizeof(uint64_t));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid reference count table offset"");
+        goto fail;
+    }
+
+    /* Snapshot table offset/length */
+    if (header.nb_snapshots > QCOW_MAX_SNAPSHOTS) {
+        error_setg(errp, ""Too many snapshots"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, header.snapshots_offset,
+                                header.nb_snapshots,
+                                sizeof(QCowSnapshotHeader));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid snapshot table offset"");
+        goto fail;
+     }
+ 
+     /* read the level 1 table */
+    if (header.l1_size > QCOW_MAX_L1_SIZE) {
+         error_setg(errp, ""Active L1 table too large"");
+         ret = -EFBIG;
+         goto fail;
+        ret = -EFBIG;
+        goto fail;
+    }
+    s->l1_size = header.l1_size;
+
+    l1_vm_state_index = size_to_l1(s, header.size);
+    if (l1_vm_state_index > INT_MAX) {
+        error_setg(errp, ""Image is too big"");
+        ret = -EFBIG;
+        goto fail;
+    }
+    s->l1_vm_state_index = l1_vm_state_index;
+
+    /* the L1 table must contain at least enough entries to put
+       header.size bytes */
+    if (s->l1_size < s->l1_vm_state_index) {
+        error_setg(errp, ""L1 table is too small"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    ret = validate_table_offset(bs, header.l1_table_offset,
+                                header.l1_size, sizeof(uint64_t));
+    if (ret < 0) {
+        error_setg(errp, ""Invalid L1 table offset"");
+        goto fail;
+    }
+    s->l1_table_offset = header.l1_table_offset;
+
+
+    if (s->l1_size > 0) {
+        s->l1_table = g_malloc0(
+            align_offset(s->l1_size * sizeof(uint64_t), 512));
+        ret = bdrv_pread(bs->file, s->l1_table_offset, s->l1_table,
+                         s->l1_size * sizeof(uint64_t));
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read L1 table"");
+            goto fail;
+        }
+        for(i = 0;i < s->l1_size; i++) {
+            be64_to_cpus(&s->l1_table[i]);
+        }
+    }
+
+    /* alloc L2 table/refcount block cache */
+    s->l2_table_cache = qcow2_cache_create(bs, L2_CACHE_SIZE);
+    s->refcount_block_cache = qcow2_cache_create(bs, REFCOUNT_CACHE_SIZE);
+
+    s->cluster_cache = g_malloc(s->cluster_size);
+    /* one more sector for decompressed data alignment */
+    s->cluster_data = qemu_blockalign(bs, QCOW_MAX_CRYPT_CLUSTERS * s->cluster_size
+                                  + 512);
+    s->cluster_cache_offset = -1;
+    s->flags = flags;
+
+    ret = qcow2_refcount_init(bs);
+    if (ret != 0) {
+        error_setg_errno(errp, -ret, ""Could not initialize refcount handling"");
+        goto fail;
+    }
+
+    QLIST_INIT(&s->cluster_allocs);
+    QTAILQ_INIT(&s->discards);
+
+    /* read qcow2 extensions */
+    if (qcow2_read_extensions(bs, header.header_length, ext_end, NULL,
+        &local_err)) {
+        error_propagate(errp, local_err);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    /* read the backing file name */
+    if (header.backing_file_offset != 0) {
+        len = header.backing_file_size;
+        if (len > MIN(1023, s->cluster_size - header.backing_file_offset)) {
+            error_setg(errp, ""Backing file name too long"");
+            ret = -EINVAL;
+            goto fail;
+        }
+        ret = bdrv_pread(bs->file, header.backing_file_offset,
+                         bs->backing_file, len);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not read backing file name"");
+            goto fail;
+        }
+        bs->backing_file[len] = '\0';
+    }
+
+    /* Internal snapshots */
+    s->snapshots_offset = header.snapshots_offset;
+    s->nb_snapshots = header.nb_snapshots;
+
+    ret = qcow2_read_snapshots(bs);
+    if (ret < 0) {
+        error_setg_errno(errp, -ret, ""Could not read snapshots"");
+        goto fail;
+    }
+
+    /* Clear unknown autoclear feature bits */
+    if (!bs->read_only && !(flags & BDRV_O_INCOMING) && s->autoclear_features) {
+        s->autoclear_features = 0;
+        ret = qcow2_update_header(bs);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not update qcow2 header"");
+            goto fail;
+        }
+    }
+
+    /* Initialise locks */
+    qemu_co_mutex_init(&s->lock);
+
+    /* Repair image if dirty */
+    if (!(flags & (BDRV_O_CHECK | BDRV_O_INCOMING)) && !bs->read_only &&
+        (s->incompatible_features & QCOW2_INCOMPAT_DIRTY)) {
+        BdrvCheckResult result = {0};
+
+        ret = qcow2_check(bs, &result, BDRV_FIX_ERRORS);
+        if (ret < 0) {
+            error_setg_errno(errp, -ret, ""Could not repair dirty image"");
+            goto fail;
+        }
+    }
+
+    /* Enable lazy_refcounts according to image and command line options */
+    opts = qemu_opts_create(&qcow2_runtime_opts, NULL, 0, &error_abort);
+    qemu_opts_absorb_qdict(opts, options, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->use_lazy_refcounts = qemu_opt_get_bool(opts, QCOW2_OPT_LAZY_REFCOUNTS,
+        (s->compatible_features & QCOW2_COMPAT_LAZY_REFCOUNTS));
+
+    s->discard_passthrough[QCOW2_DISCARD_NEVER] = false;
+    s->discard_passthrough[QCOW2_DISCARD_ALWAYS] = true;
+    s->discard_passthrough[QCOW2_DISCARD_REQUEST] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_REQUEST,
+                          flags & BDRV_O_UNMAP);
+    s->discard_passthrough[QCOW2_DISCARD_SNAPSHOT] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_SNAPSHOT, true);
+    s->discard_passthrough[QCOW2_DISCARD_OTHER] =
+        qemu_opt_get_bool(opts, QCOW2_OPT_DISCARD_OTHER, false);
+
+    opt_overlap_check = qemu_opt_get(opts, ""overlap-check"") ?: ""cached"";
+    if (!strcmp(opt_overlap_check, ""none"")) {
+        overlap_check_template = 0;
+    } else if (!strcmp(opt_overlap_check, ""constant"")) {
+        overlap_check_template = QCOW2_OL_CONSTANT;
+    } else if (!strcmp(opt_overlap_check, ""cached"")) {
+        overlap_check_template = QCOW2_OL_CACHED;
+    } else if (!strcmp(opt_overlap_check, ""all"")) {
+        overlap_check_template = QCOW2_OL_ALL;
+    } else {
+        error_setg(errp, ""Unsupported value '%s' for qcow2 option ""
+                   ""'overlap-check'. Allowed are either of the following: ""
+                   ""none, constant, cached, all"", opt_overlap_check);
+        qemu_opts_del(opts);
+        ret = -EINVAL;
+        goto fail;
+    }
+
+    s->overlap_check = 0;
+    for (i = 0; i < QCOW2_OL_MAX_BITNR; i++) {
+        /* overlap-check defines a template bitmask, but every flag may be
+         * overwritten through the associated boolean option */
+        s->overlap_check |=
+            qemu_opt_get_bool(opts, overlap_bool_option_names[i],
+                              overlap_check_template & (1 << i)) << i;
+    }
+
+    qemu_opts_del(opts);
+
+    if (s->use_lazy_refcounts && s->qcow_version < 3) {
+        error_setg(errp, ""Lazy refcounts require a qcow2 image with at least ""
+                   ""qemu 1.1 compatibility level"");
+        ret = -EINVAL;
+        goto fail;
+    }
+
+#ifdef DEBUG_ALLOC
+    {
+        BdrvCheckResult result = {0};
+        qcow2_check_refcounts(bs, &result, 0);
+    }
+#endif
+    return ret;
+
+ fail:
+    g_free(s->unknown_header_fields);
+    cleanup_unknown_header_ext(bs);
+    qcow2_free_snapshots(bs);
+    qcow2_refcount_close(bs);
+    g_free(s->l1_table);
+    /* else pre-write overlap checks in cache_destroy may crash */
+    s->l1_table = NULL;
+    if (s->l2_table_cache) {
+        qcow2_cache_destroy(bs, s->l2_table_cache);
+    }
+    if (s->refcount_block_cache) {
+        qcow2_cache_destroy(bs, s->refcount_block_cache);
+    }
+    g_free(s->cluster_cache);
+    qemu_vfree(s->cluster_data);
+    return ret;
+}
+"
+178621_CVE-2017-7539,qemu,Not_Fixing,"static void nbd_recv_coroutines_enter_all(NBDClientSession *s)
+ {
+     int i;
+ 
+     for (i = 0; i < MAX_NBD_REQUESTS; i++) {
+            qemu_coroutine_enter(s->recv_coroutine[i]);
+             qemu_coroutine_enter(s->recv_coroutine[i]);
+         }
+     }
+","static void nbd_recv_coroutines_enter_all(NBDClientSession *s)
+static void nbd_recv_coroutines_enter_all(BlockDriverState *bs)
+ {
+    NBDClientSession *s = nbd_get_client_session(bs);
+     int i;
+ 
+     for (i = 0; i < MAX_NBD_REQUESTS; i++) {
+            qemu_coroutine_enter(s->recv_coroutine[i]);
+             qemu_coroutine_enter(s->recv_coroutine[i]);
+         }
+     }
+"
+178622_CVE-2017-7539,qemu,Not_Fixing,"ssize_t nbd_receive_reply(QIOChannel *ioc, NBDReply *reply)
+{
+    uint8_t buf[NBD_REPLY_SIZE];
+    uint32_t magic;
+     ssize_t ret;
+ 
+     ret = read_sync(ioc, buf, sizeof(buf));
+    if (ret < 0) {
+         return ret;
+     }
+    if (ret != sizeof(buf)) {
+        LOG(""read failed"");
+        return -EINVAL;
+    }
+
+    /* Reply
+       [ 0 ..  3]    magic   (NBD_REPLY_MAGIC)
+       [ 4 ..  7]    error   (0 == no error)
+       [ 7 .. 15]    handle
+     */
+
+    magic = ldl_be_p(buf);
+    reply->error  = ldl_be_p(buf + 4);
+    reply->handle = ldq_be_p(buf + 8);
+
+    reply->error = nbd_errno_to_system_errno(reply->error);
+
+    if (reply->error == ESHUTDOWN) {
+        /* This works even on mingw which lacks a native ESHUTDOWN */
+        LOG(""server shutting down"");
+        return -EINVAL;
+    }
+    TRACE(""Got reply: { magic = 0x%"" PRIx32 "", .error = % "" PRId32
+          "", handle = %"" PRIu64"" }"",
+          magic, reply->error, reply->handle);
+
+    if (magic != NBD_REPLY_MAGIC) {
+        LOG(""invalid magic (got 0x%"" PRIx32 "")"", magic);
+        return -EINVAL;
+    }
+    return 0;
+}
+","ssize_t nbd_receive_reply(QIOChannel *ioc, NBDReply *reply)
+{
+    uint8_t buf[NBD_REPLY_SIZE];
+    uint32_t magic;
+     ssize_t ret;
+ 
+     ret = read_sync(ioc, buf, sizeof(buf));
+    if (ret <= 0) {
+         return ret;
+     }
+    if (ret != sizeof(buf)) {
+        LOG(""read failed"");
+        return -EINVAL;
+    }
+
+    /* Reply
+       [ 0 ..  3]    magic   (NBD_REPLY_MAGIC)
+       [ 4 ..  7]    error   (0 == no error)
+       [ 7 .. 15]    handle
+     */
+
+    magic = ldl_be_p(buf);
+    reply->error  = ldl_be_p(buf + 4);
+    reply->handle = ldq_be_p(buf + 8);
+
+    reply->error = nbd_errno_to_system_errno(reply->error);
+
+    if (reply->error == ESHUTDOWN) {
+        /* This works even on mingw which lacks a native ESHUTDOWN */
+        LOG(""server shutting down"");
+        return -EINVAL;
+    }
+    TRACE(""Got reply: { magic = 0x%"" PRIx32 "", .error = % "" PRId32
+          "", handle = %"" PRIu64"" }"",
+          magic, reply->error, reply->handle);
+
+    if (magic != NBD_REPLY_MAGIC) {
+        LOG(""invalid magic (got 0x%"" PRIx32 "")"", magic);
+        return -EINVAL;
+    }
+    return 0;
+}
+"
+178633_CVE-2017-2633,qemu,Not_Fixing,"static int send_full_color_rect(VncState *vs, int x, int y, int w, int h)
+{
+    int stream = 0;
+    ssize_t bytes;
+
+#ifdef CONFIG_VNC_PNG
+    if (tight_can_send_png_rect(vs, w, h)) {
+        return send_png_rect(vs, x, y, w, h, NULL);
+    }
+#endif
+         tight_pack24(vs, vs->tight.tight.buffer, w * h, &vs->tight.tight.offset);
+         bytes = 3;
+     } else {
+        bytes = vs->clientds.pf.bytes_per_pixel;
+     }
+","static int send_full_color_rect(VncState *vs, int x, int y, int w, int h)
+{
+    int stream = 0;
+    ssize_t bytes;
+
+#ifdef CONFIG_VNC_PNG
+    if (tight_can_send_png_rect(vs, w, h)) {
+        return send_png_rect(vs, x, y, w, h, NULL);
+    }
+#endif
+         tight_pack24(vs, vs->tight.tight.buffer, w * h, &vs->tight.tight.offset);
+         bytes = 3;
+     } else {
+        bytes = vs->client_pf.bytes_per_pixel;
+     }
+"
+178634_CVE-2017-2633,qemu,Not_Fixing,"static int send_solid_rect(VncState *vs)
+{
+    size_t bytes;
+         tight_pack24(vs, vs->tight.tight.buffer, 1, &vs->tight.tight.offset);
+         bytes = 3;
+     } else {
+        bytes = vs->clientds.pf.bytes_per_pixel;
+     }
+","static int send_solid_rect(VncState *vs)
+{
+    size_t bytes;
+         tight_pack24(vs, vs->tight.tight.buffer, 1, &vs->tight.tight.offset);
+         bytes = 3;
+     } else {
+        bytes = vs->client_pf.bytes_per_pixel;
+     }
+"
+178637_CVE-2017-2633,qemu,Not_Fixing,"tight_detect_smooth_image24(VncState *vs, int w, int h)
+{
+    int off;
+    int x, y, d, dx;
+    unsigned int c;
+    unsigned int stats[256];
+    int pixels = 0;
+    int pix, left[3];
+    unsigned int errors;
+    unsigned char *buf = vs->tight.tight.buffer;
+
+    /*
+      * If client is big-endian, color samples begin from the second
+      * byte (offset 1) of a 32-bit pixel value.
+      */
+    off = !!(vs->clientds.flags & QEMU_BIG_ENDIAN_FLAG);
+ 
+     memset(stats, 0, sizeof (stats));
+ 
+    for (y = 0, x = 0; y < h && x < w;) {
+        for (d = 0; d < h - y && d < w - x - VNC_TIGHT_DETECT_SUBROW_WIDTH;
+             d++) {
+            for (c = 0; c < 3; c++) {
+                left[c] = buf[((y+d)*w+x+d)*4+off+c] & 0xFF;
+            }
+            for (dx = 1; dx <= VNC_TIGHT_DETECT_SUBROW_WIDTH; dx++) {
+                for (c = 0; c < 3; c++) {
+                    pix = buf[((y+d)*w+x+d+dx)*4+off+c] & 0xFF;
+                    stats[abs(pix - left[c])]++;
+                    left[c] = pix;
+                }
+                pixels++;
+            }
+        }
+        if (w > h) {
+            x += h;
+            y = 0;
+        } else {
+            x = 0;
+            y += w;
+        }
+    }
+
+    /* 95% smooth or more ... */
+    if (stats[0] * 33 / pixels >= 95) {
+        return 0;
+    }
+
+    errors = 0;
+    for (c = 1; c < 8; c++) {
+        errors += stats[c] * (c * c);
+        if (stats[c] == 0 || stats[c] > stats[c-1] * 2) {
+            return 0;
+        }
+    }
+    for (; c < 256; c++) {
+        errors += stats[c] * (c * c);
+    }
+    errors /= (pixels * 3 - stats[0]);
+
+    return errors;
+}
+","tight_detect_smooth_image24(VncState *vs, int w, int h)
+{
+    int off;
+    int x, y, d, dx;
+    unsigned int c;
+    unsigned int stats[256];
+    int pixels = 0;
+    int pix, left[3];
+    unsigned int errors;
+    unsigned char *buf = vs->tight.tight.buffer;
+
+    /*
+      * If client is big-endian, color samples begin from the second
+      * byte (offset 1) of a 32-bit pixel value.
+      */
+    off = vs->client_be;
+ 
+     memset(stats, 0, sizeof (stats));
+ 
+    for (y = 0, x = 0; y < h && x < w;) {
+        for (d = 0; d < h - y && d < w - x - VNC_TIGHT_DETECT_SUBROW_WIDTH;
+             d++) {
+            for (c = 0; c < 3; c++) {
+                left[c] = buf[((y+d)*w+x+d)*4+off+c] & 0xFF;
+            }
+            for (dx = 1; dx <= VNC_TIGHT_DETECT_SUBROW_WIDTH; dx++) {
+                for (c = 0; c < 3; c++) {
+                    pix = buf[((y+d)*w+x+d+dx)*4+off+c] & 0xFF;
+                    stats[abs(pix - left[c])]++;
+                    left[c] = pix;
+                }
+                pixels++;
+            }
+        }
+        if (w > h) {
+            x += h;
+            y = 0;
+        } else {
+            x = 0;
+            y += w;
+        }
+    }
+
+    /* 95% smooth or more ... */
+    if (stats[0] * 33 / pixels >= 95) {
+        return 0;
+    }
+
+    errors = 0;
+    for (c = 1; c < 8; c++) {
+        errors += stats[c] * (c * c);
+        if (stats[c] == 0 || stats[c] > stats[c-1] * 2) {
+            return 0;
+        }
+    }
+    for (; c < 256; c++) {
+        errors += stats[c] * (c * c);
+    }
+    errors /= (pixels * 3 - stats[0]);
+
+    return errors;
+}
+"
+178640_CVE-2017-2633,qemu,Not_Fixing," static int zrle_send_framebuffer_update(VncState *vs, int x, int y,
+                                         int w, int h)
+ {
+    bool be = !!(vs->clientds.flags & QEMU_BIG_ENDIAN_FLAG);
+     size_t bytes;
+     int zywrle_level;
+ 
+    if (vs->zrle.type == VNC_ENCODING_ZYWRLE) {
+        if (!vs->vd->lossy || vs->tight.quality == (uint8_t)-1
+            || vs->tight.quality == 9) {
+            zywrle_level = 0;
+            vs->zrle.type = VNC_ENCODING_ZRLE;
+        } else if (vs->tight.quality < 3) {
+            zywrle_level = 3;
+        } else if (vs->tight.quality < 6) {
+            zywrle_level = 2;
+        } else {
+            zywrle_level = 1;
+        }
+    } else {
+        zywrle_level = 0;
+    }
+ 
+     vnc_zrle_start(vs);
+ 
+    switch(vs->clientds.pf.bytes_per_pixel) {
+     case 1:
+         zrle_encode_8ne(vs, x, y, w, h, zywrle_level);
+         break;
+ 
+     case 2:
+        if (vs->clientds.pf.gmax > 0x1F) {
+             if (be) {
+                 zrle_encode_16be(vs, x, y, w, h, zywrle_level);
+             } else {
+                zrle_encode_16le(vs, x, y, w, h, zywrle_level);
+            }
+        } else {
+            if (be) {
+                zrle_encode_15be(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_15le(vs, x, y, w, h, zywrle_level);
+            }
+        }
+        break;
+
+    case 4:
+    {
+        bool fits_in_ls3bytes;
+         bool fits_in_ms3bytes;
+ 
+         fits_in_ls3bytes =
+            ((vs->clientds.pf.rmax << vs->clientds.pf.rshift) < (1 << 24) &&
+             (vs->clientds.pf.gmax << vs->clientds.pf.gshift) < (1 << 24) &&
+             (vs->clientds.pf.bmax << vs->clientds.pf.bshift) < (1 << 24));
+ 
+        fits_in_ms3bytes = (vs->clientds.pf.rshift > 7 &&
+                            vs->clientds.pf.gshift > 7 &&
+                            vs->clientds.pf.bshift > 7);
+ 
+         if ((fits_in_ls3bytes && !be) || (fits_in_ms3bytes && be)) {
+             if (be) {
+                zrle_encode_24abe(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_24ale(vs, x, y, w, h, zywrle_level);
+          }
+        } else if ((fits_in_ls3bytes && be) || (fits_in_ms3bytes && !be)) {
+            if (be) {
+                zrle_encode_24bbe(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_24ble(vs, x, y, w, h, zywrle_level);
+            }
+        } else {
+            if (be) {
+                zrle_encode_32be(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_32le(vs, x, y, w, h, zywrle_level);
+            }
+        }
+    }
+    break;
+    }
+
+    vnc_zrle_stop(vs);
+    bytes = zrle_compress_data(vs, Z_DEFAULT_COMPRESSION);
+    vnc_framebuffer_update(vs, x, y, w, h, vs->zrle.type);
+    vnc_write_u32(vs, bytes);
+    vnc_write(vs, vs->zrle.zlib.buffer, vs->zrle.zlib.offset);
+    return 1;
+}
+"," static int zrle_send_framebuffer_update(VncState *vs, int x, int y,
+                                         int w, int h)
+ {
+    bool be = vs->client_be;
+     size_t bytes;
+     int zywrle_level;
+ 
+    if (vs->zrle.type == VNC_ENCODING_ZYWRLE) {
+        if (!vs->vd->lossy || vs->tight.quality == (uint8_t)-1
+            || vs->tight.quality == 9) {
+            zywrle_level = 0;
+            vs->zrle.type = VNC_ENCODING_ZRLE;
+        } else if (vs->tight.quality < 3) {
+            zywrle_level = 3;
+        } else if (vs->tight.quality < 6) {
+            zywrle_level = 2;
+        } else {
+            zywrle_level = 1;
+        }
+    } else {
+        zywrle_level = 0;
+    }
+ 
+     vnc_zrle_start(vs);
+ 
+    switch (vs->client_pf.bytes_per_pixel) {
+     case 1:
+         zrle_encode_8ne(vs, x, y, w, h, zywrle_level);
+         break;
+ 
+     case 2:
+        if (vs->client_pf.gmax > 0x1F) {
+             if (be) {
+                 zrle_encode_16be(vs, x, y, w, h, zywrle_level);
+             } else {
+                zrle_encode_16le(vs, x, y, w, h, zywrle_level);
+            }
+        } else {
+            if (be) {
+                zrle_encode_15be(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_15le(vs, x, y, w, h, zywrle_level);
+            }
+        }
+        break;
+
+    case 4:
+    {
+        bool fits_in_ls3bytes;
+         bool fits_in_ms3bytes;
+ 
+         fits_in_ls3bytes =
+            ((vs->client_pf.rmax << vs->client_pf.rshift) < (1 << 24) &&
+             (vs->client_pf.gmax << vs->client_pf.gshift) < (1 << 24) &&
+             (vs->client_pf.bmax << vs->client_pf.bshift) < (1 << 24));
+ 
+        fits_in_ms3bytes = (vs->client_pf.rshift > 7 &&
+                            vs->client_pf.gshift > 7 &&
+                            vs->client_pf.bshift > 7);
+ 
+         if ((fits_in_ls3bytes && !be) || (fits_in_ms3bytes && be)) {
+             if (be) {
+                zrle_encode_24abe(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_24ale(vs, x, y, w, h, zywrle_level);
+          }
+        } else if ((fits_in_ls3bytes && be) || (fits_in_ms3bytes && !be)) {
+            if (be) {
+                zrle_encode_24bbe(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_24ble(vs, x, y, w, h, zywrle_level);
+            }
+        } else {
+            if (be) {
+                zrle_encode_32be(vs, x, y, w, h, zywrle_level);
+            } else {
+                zrle_encode_32le(vs, x, y, w, h, zywrle_level);
+            }
+        }
+    }
+    break;
+    }
+
+    vnc_zrle_stop(vs);
+    bytes = zrle_compress_data(vs, Z_DEFAULT_COMPRESSION);
+    vnc_framebuffer_update(vs, x, y, w, h, vs->zrle.type);
+    vnc_write_u32(vs, bytes);
+    vnc_write(vs, vs->zrle.zlib.buffer, vs->zrle.zlib.offset);
+    return 1;
+}
+"
+178641_CVE-2017-2633,qemu,Not_Fixing,"static void vnc_async_encoding_start(VncState *orig, VncState *local)
+{
+    local->vnc_encoding = orig->vnc_encoding;
+    local->features = orig->features;
+    local->ds = orig->ds;
+     local->vd = orig->vd;
+     local->lossy_rect = orig->lossy_rect;
+     local->write_pixels = orig->write_pixels;
+    local->clientds = orig->clientds;
+     local->tight = orig->tight;
+     local->zlib = orig->zlib;
+     local->hextile = orig->hextile;
+    local->output =  queue->buffer;
+    local->csock = -1; /* Don't do any network work on this thread */
+
+    buffer_reset(&local->output);
+}
+","static void vnc_async_encoding_start(VncState *orig, VncState *local)
+{
+    local->vnc_encoding = orig->vnc_encoding;
+    local->features = orig->features;
+    local->ds = orig->ds;
+     local->vd = orig->vd;
+     local->lossy_rect = orig->lossy_rect;
+     local->write_pixels = orig->write_pixels;
+    local->client_pf = orig->client_pf;
+    local->client_be = orig->client_be;
+     local->tight = orig->tight;
+     local->zlib = orig->zlib;
+     local->hextile = orig->hextile;
+    local->output =  queue->buffer;
+    local->csock = -1; /* Don't do any network work on this thread */
+
+    buffer_reset(&local->output);
+}
+"
+178642_CVE-2017-2633,qemu,Not_Fixing,"static void vnc_dpy_update(DisplayState *ds, int x, int y, int w, int h)
+{
+     int i;
+     VncDisplay *vd = ds->opaque;
+     struct VncSurface *s = &vd->guest;
+ 
+     h += y;
+ 
+       two 16-pixel blocks but we only mark the first as dirty
+    */
+    w += (x % 16);
+    x -= (x % 16);
+     w += (x % 16);
+     x -= (x % 16);
+ 
+    x = MIN(x, s->ds->width);
+    y = MIN(y, s->ds->height);
+    w = MIN(x + w, s->ds->width) - x;
+    h = MIN(h, s->ds->height);
+ 
+     for (; y < h; y++)
+         for (i = 0; i < w; i += 16)
+
+void vnc_framebuffer_update(VncState *vs, int x, int y, int w, int h,
+                            int32_t encoding)
+{
+    vnc_write_u16(vs, x);
+    vnc_write_u16(vs, y);
+    vnc_write_u16(vs, w);
+    vnc_write_u16(vs, h);
+
+    vnc_write_s32(vs, encoding);
+}
+
+void buffer_reserve(Buffer *buffer, size_t len)
+{
+    if ((buffer->capacity - buffer->offset) < len) {
+        buffer->capacity += (len + 1024);
+        buffer->buffer = g_realloc(buffer->buffer, buffer->capacity);
+        if (buffer->buffer == NULL) {
+            fprintf(stderr, ""vnc: out of memory\n"");
+            exit(1);
+        }
+    }
+}
+
+int buffer_empty(Buffer *buffer)
+{
+    return buffer->offset == 0;
+}
+
+uint8_t *buffer_end(Buffer *buffer)
+{
+    return buffer->buffer + buffer->offset;
+}
+
+void buffer_reset(Buffer *buffer)
+{
+        buffer->offset = 0;
+}
+
+void buffer_free(Buffer *buffer)
+{
+    g_free(buffer->buffer);
+    buffer->offset = 0;
+    buffer->capacity = 0;
+    buffer->buffer = NULL;
+}
+
+void buffer_append(Buffer *buffer, const void *data, size_t len)
+{
+    memcpy(buffer->buffer + buffer->offset, data, len);
+    buffer->offset += len;
+}
+
+static void vnc_desktop_resize(VncState *vs)
+{
+    DisplayState *ds = vs->ds;
+
+    if (vs->csock == -1 || !vnc_has_feature(vs, VNC_FEATURE_RESIZE)) {
+        return;
+    }
+    if (vs->client_width == ds_get_width(ds) &&
+        vs->client_height == ds_get_height(ds)) {
+        return;
+    }
+    vs->client_width = ds_get_width(ds);
+    vs->client_height = ds_get_height(ds);
+    vnc_lock_output(vs);
+    vnc_write_u8(vs, VNC_MSG_SERVER_FRAMEBUFFER_UPDATE);
+    vnc_write_u8(vs, 0);
+    vnc_write_u16(vs, 1); /* number of rects */
+    vnc_framebuffer_update(vs, 0, 0, vs->client_width, vs->client_height,
+                           VNC_ENCODING_DESKTOPRESIZE);
+    vnc_unlock_output(vs);
+    vnc_flush(vs);
+}
+
+static void vnc_abort_display_jobs(VncDisplay *vd)
+{
+    VncState *vs;
+
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_lock_output(vs);
+        vs->abort = true;
+        vnc_unlock_output(vs);
+    }
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_jobs_join(vs);
+    }
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_lock_output(vs);
+        vs->abort = false;
+        vnc_unlock_output(vs);
+    }
+}
+     }
+","static void vnc_dpy_update(DisplayState *ds, int x, int y, int w, int h)
+{
+     int i;
+     VncDisplay *vd = ds->opaque;
+     struct VncSurface *s = &vd->guest;
+    int width = ds_get_width(ds);
+    int height = ds_get_height(ds);
+ 
+     h += y;
+ 
+       two 16-pixel blocks but we only mark the first as dirty
+    */
+    w += (x % 16);
+    x -= (x % 16);
+     w += (x % 16);
+     x -= (x % 16);
+ 
+    x = MIN(x, width);
+    y = MIN(y, height);
+    w = MIN(x + w, width) - x;
+    h = MIN(h, height);
+ 
+     for (; y < h; y++)
+         for (i = 0; i < w; i += 16)
+
+void vnc_framebuffer_update(VncState *vs, int x, int y, int w, int h,
+                            int32_t encoding)
+{
+    vnc_write_u16(vs, x);
+    vnc_write_u16(vs, y);
+    vnc_write_u16(vs, w);
+    vnc_write_u16(vs, h);
+
+    vnc_write_s32(vs, encoding);
+}
+
+void buffer_reserve(Buffer *buffer, size_t len)
+{
+    if ((buffer->capacity - buffer->offset) < len) {
+        buffer->capacity += (len + 1024);
+        buffer->buffer = g_realloc(buffer->buffer, buffer->capacity);
+        if (buffer->buffer == NULL) {
+            fprintf(stderr, ""vnc: out of memory\n"");
+            exit(1);
+        }
+    }
+}
+
+int buffer_empty(Buffer *buffer)
+{
+    return buffer->offset == 0;
+}
+
+uint8_t *buffer_end(Buffer *buffer)
+{
+    return buffer->buffer + buffer->offset;
+}
+
+void buffer_reset(Buffer *buffer)
+{
+        buffer->offset = 0;
+}
+
+void buffer_free(Buffer *buffer)
+{
+    g_free(buffer->buffer);
+    buffer->offset = 0;
+    buffer->capacity = 0;
+    buffer->buffer = NULL;
+}
+
+void buffer_append(Buffer *buffer, const void *data, size_t len)
+{
+    memcpy(buffer->buffer + buffer->offset, data, len);
+    buffer->offset += len;
+}
+
+static void vnc_desktop_resize(VncState *vs)
+{
+    DisplayState *ds = vs->ds;
+
+    if (vs->csock == -1 || !vnc_has_feature(vs, VNC_FEATURE_RESIZE)) {
+        return;
+    }
+    if (vs->client_width == ds_get_width(ds) &&
+        vs->client_height == ds_get_height(ds)) {
+        return;
+    }
+    vs->client_width = ds_get_width(ds);
+    vs->client_height = ds_get_height(ds);
+    vnc_lock_output(vs);
+    vnc_write_u8(vs, VNC_MSG_SERVER_FRAMEBUFFER_UPDATE);
+    vnc_write_u8(vs, 0);
+    vnc_write_u16(vs, 1); /* number of rects */
+    vnc_framebuffer_update(vs, 0, 0, vs->client_width, vs->client_height,
+                           VNC_ENCODING_DESKTOPRESIZE);
+    vnc_unlock_output(vs);
+    vnc_flush(vs);
+}
+
+static void vnc_abort_display_jobs(VncDisplay *vd)
+{
+    VncState *vs;
+
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_lock_output(vs);
+        vs->abort = true;
+        vnc_unlock_output(vs);
+    }
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_jobs_join(vs);
+    }
+    QTAILQ_FOREACH(vs, &vd->clients, next) {
+        vnc_lock_output(vs);
+        vs->abort = false;
+        vnc_unlock_output(vs);
+    }
+}
+     }
+"
+179727_CVE-2011-3346,qemu,Not_Fixing,"static SCSIRequest *scsi_new_request(SCSIDevice *d, uint32_t tag,
+                                     uint32_t lun, void *hba_private)
+ {
+     SCSIDiskState *s = DO_UPCAST(SCSIDiskState, qdev, d);
+     SCSIRequest *req;
+    SCSIDiskReq *r;
+ 
+     req = scsi_req_alloc(&scsi_disk_reqops, &s->qdev, tag, lun, hba_private);
+    r = DO_UPCAST(SCSIDiskReq, req, req);
+    r->iov.iov_base = qemu_blockalign(s->bs, SCSI_DMA_BUF_SIZE);
+     return req;
+ }
+","static SCSIRequest *scsi_new_request(SCSIDevice *d, uint32_t tag,
+                                     uint32_t lun, void *hba_private)
+ {
+     SCSIDiskState *s = DO_UPCAST(SCSIDiskState, qdev, d);
+     SCSIRequest *req;
+ 
+     req = scsi_req_alloc(&scsi_disk_reqops, &s->qdev, tag, lun, hba_private);
+     return req;
+ }
+"
