@@ -1,0 +1,8 @@
+betq 4 has 4 question answered. except that other things are similar to beta 3.
+
+Summary table:
+Question	What it checks				Expected in fixing patches
+Q1		Any uninterp. functions exist?		Baseline count
+Q2		Same functions, both sides		Comparable pairs (good for analysis)
+Q3		Before has MORE functions		Patch removed checks — possibly weakened
+Q4		After has MORE functions		Patch added checks — likely a fix ✓
