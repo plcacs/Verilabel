@@ -66,7 +66,11 @@ Files
 
    Setting 1: CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_split.zip  
    Setting 2: CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_refiltered_by_Bigvul_Fixing_split.tar.gz  
-   Original BigVul dataset  
+   Original BigVul dataset
+   The datasets for Setting 1 and Setting 2 can be downloaded from the following Google Drive folder:  
+   https://drive.google.com/drive/folders/1zvW7TGxRCbrXRah0FSc4I9z-AKwNUwj-
+   The Original BigVul dataset can be downloaded: https://drive.google.com/uc?id=10-kjbsA806Zdk54Ax8J3WvLKGTzN8CMX
+
 
    For Setting 1 and Setting 2, we first applied the required data preprocessing procedures to convert our datasets into the input formats expected by each baseline model. After preprocessing, each model was retrained on the corresponding processed dataset. For the original BigVul dataset, we followed the original baseline settings and used it as the reference dataset for comparison.
 
