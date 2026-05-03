@@ -78,28 +78,49 @@ For convenience, two ready-to-use folders are provided:
 
 This artifact also contains CSV files and prediction results used for baseline model evaluation. See the `baseline/` folder for the relevant scripts and data.
 
-6. Four_Models_Predictions.zip  
-   This file contains the prediction results produced by four baseline models across three datasets and five random seeds. These prediction results are used to reproduce the averaged baseline results reported in Table 6.
+### 4. `Four_Models_Predictions.zip`
 
-   The evaluated baseline models are LineVul, DeepDFA, CodeBERT, and ReVeal.
+Prediction results produced by four baseline models across three datasets and five random seeds. These results are used to reproduce the averaged baseline results reported in **Table 6**.
 
-   The baseline implementations and resources were obtained from the following sources:
+| Item | Description |
+|---|---|
+| Evaluated models | LineVul, DeepDFA, CodeBERT, and ReVeal |
+| Evaluation datasets | Setting 1, Setting 2, and the original BigVul dataset |
+| Random seeds | Five independent training runs for each model-dataset combination |
+| Reported metrics | F1-score, Recall, and Precision |
+| Output usage | Used to compute the averaged baseline results reported in Table 6 |
 
-   LineVul: https://github.com/awsm-research/LineVul  
-   DeepDFA: https://github.com/ISU-PAAL/DeepDFA  
-   CodeBERT and ReVeal projects: https://doi.org/10.6084/m9.figshare.20791240  
+The baseline implementations and resources were obtained from the following sources:
 
-   Each model was evaluated on the following three datasets:
+| Model | Source |
+|---|---|
+| LineVul | https://github.com/awsm-research/LineVul |
+| DeepDFA | https://github.com/ISU-PAAL/DeepDFA |
+| CodeBERT and ReVeal | https://doi.org/10.6084/m9.figshare.20791240 |
 
-   Setting 1: CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_split.zip  
-   Setting 2: CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_refiltered_by_Bigvul_Fixing_split.tar.gz  
-   Original BigVul dataset
-   The datasets for Setting 1 and Setting 2 can be downloaded from the following Google Drive folder:  
-   https://drive.google.com/drive/folders/1zvW7TGxRCbrXRah0FSc4I9z-AKwNUwj-
-   The Original BigVul dataset can be downloaded: https://drive.google.com/uc?id=10-kjbsA806Zdk54Ax8J3WvLKGTzN8CMX
+Each model was evaluated on the following three datasets:
+
+| Dataset | File / Source |
+|---|---|
+| Setting 1 | `CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_split.zip` |
+| Setting 2 | `CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_refiltered_by_Bigvul_Fixing_split.tar.gz` |
+| Original BigVul dataset | Original BigVul dataset used by prior baseline studies |
+
+The datasets for **Setting 1** and **Setting 2** can be downloaded from the following Google Drive folder:
+
+```text
+https://drive.google.com/drive/folders/1zvW7TGxRCbrXRah0FSc4I9z-AKwNUwj-
+```
+
+The **Original BigVul dataset** can be downloaded from:
+
+```text
+https://drive.google.com/uc?id=10-kjbsA806Zdk54Ax8J3WvLKGTzN8CMX
+```
+
+For **Setting 1** and **Setting 2**, we first applied the required data preprocessing procedures to convert the datasets into the input formats expected by each baseline model. After preprocessing, each model was retrained on the corresponding processed dataset. For the **original BigVul dataset**, we followed the original baseline settings and used it as the reference dataset for comparison.
+
+For each model-dataset combination, we conducted five independent training runs using different random seeds. The trained models were then used to generate predictions on the corresponding test sets. We summarize the prediction results by computing F1-score, Recall, and Precision for each run, and report the average values across the five seeds.
 
 
-   For Setting 1 and Setting 2, we first applied the required data preprocessing procedures to convert our datasets into the input formats expected by each baseline model. After preprocessing, each model was retrained on the corresponding processed dataset. For the original BigVul dataset, we followed the original baseline settings and used it as the reference dataset for comparison.
-
-   For each model-dataset combination, we conducted five independent training runs using different random seeds. The trained models were then used to generate predictions on the corresponding test sets. We summarize the prediction results by computing F1-score, Recall, and Precision for each run, and then report the average values across the five seeds.
    
