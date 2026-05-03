@@ -38,19 +38,7 @@ VeriLabel fix-or-not predictions for **4,446 entries** from the PrimeVul dataset
 
 ## 🔁 Reproducing the Results
 
-### Option A: From Scratch
-
-1. From `BigVul_result.csv` or `PrimeVul_result.csv`, extract the `before_func` column and save each entry as a separate file in a folder named `before/`, using the corresponding `id` as the filename.
-2. Do the same for the `after_func` column, saving files into a folder named `after/`.
-3. Run the analysis script:
-```bash
-   python Verilabel_beta3_test.py
-```
-4. The script will generate several output files. The final fix classification results can be found in **`Vulresult.csv`**.
-
----
-
-### Option B: Easier Method (Recommended)
+### Option A: Easier Method (Recommended)
 
 For convenience, two ready-to-use folders are provided:
 
@@ -70,10 +58,20 @@ For convenience, two ready-to-use folders are provided:
 ```
 4. A `Vulresult.csv` file will be generated in that directory.
 
-> All tables reported in the paper can be reproduced from the generated `Vulresult.csv` files.
+> Tables (through 1-5) reported in the paper can be reproduced from the generated `Vulresult.csv` files.
 
 ---
+### Option B: From Scratch
 
+1. From `BigVul_result.csv` or `PrimeVul_result.csv`, extract the `before_func` column and save each entry as a separate file in a folder named `before/`, using the corresponding `id` as the filename.
+2. Do the same for the `after_func` column, saving files into a folder named `after/`.
+3. Run the analysis script:
+```bash
+   python Verilabel_beta3_test.py
+```
+4. The script will generate several output files. The final fix classification results can be found in **`Vulresult.csv`**.
+
+---
 
 ### 4. Reproducing Table 6: Baseline Model Evaluation
 
