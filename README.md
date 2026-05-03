@@ -120,7 +120,7 @@ https://drive.google.com/uc?id=10-kjbsA806Zdk54Ax8J3WvLKGTzN8CMX
 
 For **Setting 1** and **Setting 2**, we first applied the required data preprocessing procedures to convert the datasets into the input formats expected by each baseline model. Detailed preprocessing steps are available in the corresponding baseline model repositories listed above. In our evaluation, we followed those preprocessing pipelines and replaced the original input datasets with our Setting 1 and Setting 2 datasets. After preprocessing, each model was retrained on the corresponding processed dataset. For the **original BigVul dataset**, we followed the original baseline settings and used it as the reference dataset for comparison.
 
-For each model-dataset combination, we conducted five independent training runs using different random seeds. The trained models were then used to generate predictions on the corresponding test sets. We summarize the prediction results by computing F1-score, Recall, and Precision for each run, and report the average values across the five seeds.
+For each model-dataset combination, we conducted five independent training runs using different random seeds. The trained models were then used to generate predictions on the corresponding test sets. We summarize the prediction results by computing F1-score, Recall, and Precision for each run, and report the average values across the five seeds. Our preiction result were save on the file "Four_Models_Predictions.zip".
 
 
    
