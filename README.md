@@ -101,12 +101,7 @@ Each model was evaluated on the following three datasets:
 | Setting 2 | `CWE_IDs_Vulnerable_plus_k_times_non_vulnerable_refiltered_by_Bigvul_Fixing_split.tar.gz` |
 | Original BigVul dataset | Original BigVul dataset used by prior baseline studies |
 
-The datasets for **Setting 1** and **Setting 2** can be downloaded from the following Google Drive folder:
 
-```text
-Setting 1: https://drive.google.com/file/d/1pgq6HUjCngMim86YaT3eOwB8PsxYCE6Y/view?usp=sharing   
-Setting 2: https://drive.google.com/file/d/1ZLNTtwelDSzFKEOgujLeWBe6sibWOlmt/view?usp=sharing
-```
 
 The **Original BigVul dataset** can be downloaded from (this is the original Author's drive for BigVul; accessing it will not reveal the current paper's author information):
 
