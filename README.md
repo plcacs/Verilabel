@@ -74,11 +74,8 @@ For convenience, two ready-to-use folders are provided:
 
 ---
 
-## 📊 Reproducing Table 6: Baseline Model Evaluation
 
-This artifact also contains CSV files and prediction results used for baseline model evaluation. See the `baseline/` folder for the relevant scripts and data.
-
-### 4. `Four_Models_Predictions.zip`
+### 4. Reproducing Table 6: Baseline Model Evaluation
 
 Prediction results produced by four baseline models across three datasets and five random seeds. These results are used to reproduce the averaged baseline results reported in **Table 6**.
 
