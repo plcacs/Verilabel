@@ -107,7 +107,7 @@ The datasets for **Setting 1** and **Setting 2** can be downloaded from the foll
 https://drive.google.com/drive/folders/1zvW7TGxRCbrXRah0FSc4I9z-AKwNUwj-
 ```
 
-The **Original BigVul dataset** can be downloaded from:
+The **Original BigVul dataset** can be downloaded from (this is the original Author's drive for BigVul; accessing it will not reveal the current paper's author information):
 
 ```text
 https://drive.google.com/uc?id=10-kjbsA806Zdk54Ax8J3WvLKGTzN8CMX
