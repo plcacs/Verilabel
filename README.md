@@ -104,7 +104,8 @@ Each model was evaluated on the following three datasets:
 The datasets for **Setting 1** and **Setting 2** can be downloaded from the following Google Drive folder:
 
 ```text
-https://drive.google.com/drive/folders/1zvW7TGxRCbrXRah0FSc4I9z-AKwNUwj-
+https://drive.google.com/file/d/1pgq6HUjCngMim86YaT3eOwB8PsxYCE6Y/view?usp=sharing   and
+https://drive.google.com/file/d/1ZLNTtwelDSzFKEOgujLeWBe6sibWOlmt/view?usp=sharing
 ```
 
 The **Original BigVul dataset** can be downloaded from (this is the original Author's drive for BigVul; accessing it will not reveal the current paper's author information):
